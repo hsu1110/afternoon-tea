@@ -44,15 +44,5 @@
       "endTime": "2025-12-17T05:16:42.107Z"
     }
   ],
-  "activeSessions": [
-    {
-      "id": "732aebf1-4bac-4468-afd1-260ebb7a4e87",
-      "shopId": "4",
-      "shopName": "迷客夏",
-      "deadline": "2025-12-17T05:47:01.256Z",
-      "orders": [],
-      "startTime": "2025-12-17T05:17:02.529Z",
-      "status": "active"
-    }
-  ]
+  "activeSessions": []
 }

@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue';
 import Wheel from '../components/Wheel.vue';
-import { ElMessageBox } from 'element-plus';
 
 const triggerToast = inject('triggerToast');
 const triggerConfirm = inject('triggerConfirm');
@@ -151,24 +150,19 @@ const copyGroupBuyText = (session) => {
 const handleCheckout = async (session) => {
   const total = calculateTotal(session.orders);
   
-  try {
-    await ElMessageBox.confirm(
-      `確定要結帳 ${session.shopName} 嗎？\n總金額：$${total}`,
-      '結帳確認',
-      {
-        confirmButtonText: '確定結帳',
-        cancelButtonText: '取消',
-        type: 'success',
-        center: true
-      }
-    );
+  const confirmed = await triggerConfirm({
+    title: '結帳確認',
+    message: `確定要結帳 ${session.shopName} 嗎？\n總金額：$${total}`,
+    confirmText: '確定結帳',
+    type: 'success'
+  });
 
-    await window.electronAPI.checkoutSession(total, session.shopName, session.id);
-    await loadData(); // Reload to remove from list
-    triggerToast('結帳完成！已記入帳本');
-  } catch (error) {
-    // Cancelled or error
-    if (error !== 'cancel') {
+  if (confirmed) {
+    try {
+      await window.electronAPI.checkoutSession(total, session.shopName, session.id);
+      await loadData(); // Reload to remove from list
+      triggerToast('結帳完成！已記入帳本');
+    } catch (error) {
       console.error('Checkout error:', error);
       triggerToast('結帳失敗');
     }
@@ -222,7 +216,7 @@ onMounted(() => {
       <!-- Header / Actions -->
       <div class="flex justify-between items-center bg-slate-800/50 p-4 rounded-2xl backdrop-blur-sm border border-slate-700">
         <h1 class="text-2xl font-bold text-white flex items-center gap-3">
-          <span>🎲</span> 下午茶輪盤
+          <span>🎲</span> 下午茶
         </h1>
         <div class="flex gap-3">
           <button 
@@ -237,7 +231,7 @@ onMounted(() => {
             @click="showWheel = true"
             class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5"
           >
-            + 開啟新團購
+            + 決定下午茶
           </button>
           <button 
             v-else

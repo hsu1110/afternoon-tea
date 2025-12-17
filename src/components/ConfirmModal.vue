@@ -20,8 +20,8 @@ const props = defineProps({
   },
   type: {
     type: String,
-    default: 'warning', // warning, info, danger
-    validator: (value) => ['warning', 'info', 'danger'].includes(value)
+    default: 'warning', // warning, info, danger, success
+    validator: (value) => ['warning', 'info', 'danger', 'success'].includes(value)
   }
 });
 
@@ -50,11 +50,13 @@ const handleCancel = () => {
           :class="{
             'bg-amber-500/20 text-amber-500': type === 'warning',
             'bg-blue-500/20 text-blue-500': type === 'info',
-            'bg-red-500/20 text-red-500': type === 'danger'
+            'bg-red-500/20 text-red-500': type === 'danger',
+            'bg-green-500/20 text-green-500': type === 'success'
           }"
         >
           <span v-if="type === 'warning'">⚠️</span>
           <span v-else-if="type === 'info'">ℹ️</span>
+          <span v-else-if="type === 'success'">💰</span>
           <span v-else>🗑️</span>
         </div>
         <h3 class="text-xl font-bold text-white">{{ title }}</h3>
@@ -79,7 +81,8 @@ const handleCancel = () => {
           :class="{
             'bg-amber-600 hover:bg-amber-500 shadow-amber-500/20': type === 'warning',
             'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20': type === 'info',
-            'bg-red-600 hover:bg-red-500 shadow-red-500/20': type === 'danger'
+            'bg-red-600 hover:bg-red-500 shadow-red-500/20': type === 'danger',
+            'bg-green-600 hover:bg-green-500 shadow-green-500/20': type === 'success'
           }"
         >
           {{ confirmText }}

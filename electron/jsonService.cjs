@@ -42,17 +42,12 @@ class JsonService {
     }
   }
 
-  // 初始化範例資料
+  // 初始化資料
   initSampleData() {
     const shopsPath = 'shops.json';
+    // 如果檔案不存在，建立一個空的店家列表
     if (!this.read(shopsPath)) {
-      const sampleShops = [
-        { id: '1', name: '50嵐', phone: '02-2345-6789', weight: 1 },
-        { id: '2', name: '星巴克', phone: '02-8765-4321', weight: 1 },
-        { id: '3', name: '可不可', phone: '02-1234-5678', weight: 1 },
-        { id: '4', name: '迷客夏', phone: '02-9876-5432', weight: 1 }
-      ];
-      this.write(shopsPath, sampleShops);
+      this.write(shopsPath, []);
     }
   }
   // 取得店家列表
