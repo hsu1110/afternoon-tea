@@ -202,8 +202,6 @@ const handleSpin = () => {
 };
 
 onMounted(() => {
-  console.log('HomeView mounted');
-  console.log('handleExport type:', typeof handleExport);
   loadData();
   setInterval(loadData, 10000);
 });

@@ -4,8 +4,8 @@ const crypto = require('crypto');
 
 class JsonService {
   constructor(userDataPath) {
-    // 預設資料夾路徑 (之後可以改為讀取設定檔)
-    this.dataDir = path.join(userDataPath, 'data');
+    // 直接使用傳入的路徑，不再自動建立 data 子資料夾
+    this.dataDir = userDataPath;
     this.ensureDataDir();
   }
 

@@ -43,18 +43,14 @@ const createWindow = () => {
   
   if (!dataPath) {
     dataPath = process.env.NODE_ENV === 'development' 
-      ? path.join(__dirname, '..', '_data')
+      ? path.join(__dirname, '..', '_data', 'data')
       : path.join(app.getPath('userData'), 'data');
   }
     
   jsonService = new JsonService(dataPath);
-  console.log('JsonService initialized.');
-  console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(jsonService)));
   
   if (typeof jsonService.getShops !== 'function') {
     console.error('CRITICAL ERROR: getShops is NOT a function on jsonService instance!');
-  } else {
-    console.log('getShops is available.');
   }
 
   jsonService.initSampleData();
