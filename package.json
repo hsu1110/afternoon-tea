@@ -35,7 +35,7 @@
   },
   "build": {
     "appId": "com.afternoon_tea.app",
-    "productName": "Afternoon Tea Wheel",
+    "productName": "下午茶",
     "directories": {
       "output": "release"
     },
@@ -45,7 +45,12 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "public/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }
