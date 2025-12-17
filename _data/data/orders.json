@@ -1,0 +1,58 @@
+{
+  "activeSession": null,
+  "history": [
+    {
+      "id": "ed4ccce9-e5e7-4019-a96d-8d0fb3229d8d",
+      "shopId": "1",
+      "shopName": "50嵐",
+      "deadline": "2025-12-17T05:20:46.000Z",
+      "orders": [
+        {
+          "id": "881cb579-3861-4596-a5f8-b0e24b6c460b",
+          "sessionId": "ed4ccce9-e5e7-4019-a96d-8d0fb3229d8d",
+          "name": "許朝智",
+          "item": "珍珠奶茶",
+          "price": 50,
+          "note": "無糖微冰",
+          "timestamp": "2025-12-17T05:15:29.925Z"
+        }
+      ],
+      "startTime": "2025-12-17T05:13:57.904Z",
+      "status": "completed",
+      "finalAmount": 50,
+      "endTime": "2025-12-17T05:16:21.347Z"
+    },
+    {
+      "id": "53da134f-2bf7-48b0-b77f-2cf272f4a21a",
+      "shopId": "3",
+      "shopName": "可不可",
+      "deadline": "2025-12-17T05:44:54.139Z",
+      "orders": [
+        {
+          "id": "7302864f-bc22-4ee4-8fd3-0f25cc6f0e82",
+          "sessionId": "53da134f-2bf7-48b0-b77f-2cf272f4a21a",
+          "name": "許朝智",
+          "item": "珍珠奶茶",
+          "price": 50,
+          "note": "無糖微冰",
+          "timestamp": "2025-12-17T05:15:40.179Z"
+        }
+      ],
+      "startTime": "2025-12-17T05:14:55.525Z",
+      "status": "completed",
+      "finalAmount": 50,
+      "endTime": "2025-12-17T05:16:42.107Z"
+    }
+  ],
+  "activeSessions": [
+    {
+      "id": "732aebf1-4bac-4468-afd1-260ebb7a4e87",
+      "shopId": "4",
+      "shopName": "迷客夏",
+      "deadline": "2025-12-17T05:47:01.256Z",
+      "orders": [],
+      "startTime": "2025-12-17T05:17:02.529Z",
+      "status": "active"
+    }
+  ]
+}

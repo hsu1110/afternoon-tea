@@ -1,0 +1,26 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  getShops: () => ipcRenderer.invoke('get-shops'),
+  startSession: (shop, deadline) => ipcRenderer.invoke('start-session', { shop, deadline }),
+  updateWeights: (winnerId) => ipcRenderer.invoke('update-weights', winnerId),
+  submitOrder: (order) => ipcRenderer.invoke('submit-order', order),
+  deleteOrder: (orderId) => ipcRenderer.invoke('delete-order', orderId),
+  updateOrder: (order) => ipcRenderer.invoke('update-order', order),
+  getOrders: () => ipcRenderer.invoke('get-orders'),
+  getMenuImage: (shopId) => ipcRenderer.invoke('get-menu-image', shopId),
+  getFunds: () => ipcRenderer.invoke('get-funds'),
+  addFundTransaction: (transaction) => ipcRenderer.invoke('add-fund-transaction', transaction),
+  saveShop: (shop, imagePath) => ipcRenderer.invoke('save-shop', { shop, imagePath }),
+  deleteShop: (shopId) => ipcRenderer.invoke('delete-shop', shopId),
+  selectImage: () => ipcRenderer.invoke('select-image'),
+  exportOrders: (sessionId) => ipcRenderer.invoke('export-orders', sessionId),
+  getLastOrder: (user, shopId) => ipcRenderer.invoke('get-last-order', { user, shopId }),
+  updateSession: (updates) => ipcRenderer.invoke('update-session', updates),
+  cancelSession: (sessionId) => ipcRenderer.invoke('cancel-session', sessionId),
+  checkoutSession: (amount, shopName, sessionId) => ipcRenderer.invoke('checkout-session', amount, shopName, sessionId),
+  updateFundTransaction: (transaction) => ipcRenderer.invoke('update-fund-transaction', transaction),
+  deleteFundTransaction: (id) => ipcRenderer.invoke('delete-fund-transaction', id),
+  getDataPath: () => ipcRenderer.invoke('get-data-path'),
+  setDataPath: () => ipcRenderer.invoke('set-data-path'),
+});
