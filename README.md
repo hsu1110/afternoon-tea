@@ -1,5 +1,97 @@
-# Vue 3 + Vite
+# 🍰 下午茶轉盤 (Afternoon Tea Wheel)
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+這是一個專為辦公室下午茶設計的桌面應用程式，整合了「轉盤抽籤」、「團購點餐」與「公費管理」功能，讓決定下午茶吃什麼變得更有趣且高效率！
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## ✨ 功能特色
+
+- **🎰 命運轉盤**：
+  - 視覺化的轉盤動畫，解決「今天吃什麼」的選擇困難症。
+  - **公平演算法**：中獎過的店家權重會暫時歸零，沒中獎的店家權重會增加，確保大家想吃的都有機會吃到。
+- **🏪 店家管理**：
+  - 輕鬆新增、編輯、刪除店家資訊。
+  - 支援上傳菜單圖片，點餐時可直接查看。
+  - **自動編號**：店家 ID 自動遞增 (1, 2, 3...)，方便管理。
+- **📝 團購點餐**：
+  - 發起團購 Session，設定截止時間。
+  - 成員可輸入姓名、品項、價格與備註。
+  - 支援 **Excel 匯出**，方便統計與訂餐。
+- **💰 公費管理**：
+  - 記錄公費的收入與支出。
+  - 結帳時自動將訂單金額轉為支出紀錄。
+  - 隨時查看公費餘額。
+
+## 🚀 安裝說明
+
+本程式提供 Windows 版本，安裝後即可使用。
+
+1.  **下載安裝檔**：
+    - `Afternoon Tea Wheel Setup x.x.x.exe` (安裝版)
+    - 或是使用免安裝版直接執行。
+2.  **安裝位置**：
+    - 預設安裝於使用者目錄：`%LOCALAPPDATA%\Programs\Afternoon Tea Wheel`
+3.  **資料儲存**：
+    - 所有資料 (店家、訂單、圖片) 預設儲存於：`%APPDATA%\afternoon_tea\data`
+    - 可在程式設定中更改資料儲存位置 (例如改到 Dropbox 或 Google Drive 同步資料夾，實現多人共用)。
+
+## 📖 使用手冊
+
+### 1. 新增店家
+
+1.  進入 **「店家管理」** 頁面。
+2.  點擊 **「新增店家」**。
+3.  輸入店家名稱，並選擇菜單圖片 (支援 JPG, PNG)。
+4.  點擊儲存，系統會自動分配一個 ID。
+
+### 2. 轉盤抽籤
+
+1.  進入 **「轉盤」** 頁面。
+2.  點擊中間的 **「GO」** 按鈕開始旋轉。
+3.  轉盤停止後會顯示中獎店家。
+4.  點擊 **「發起團購」** 直接開啟點餐頁面。
+
+### 3. 點餐流程
+
+1.  發起人設定截止時間。
+2.  大家在自己的電腦上 (若資料夾有同步) 或輪流在同一台電腦上輸入餐點。
+3.  點擊 **「+ 新增餐點」**，輸入姓名、品項、價格。
+4.  時間截止或點餐完畢後，點擊 **「匯出 Excel」** 產生訂單表格。
+5.  點擊 **「結帳」**，系統會自動扣除公費並結束本次團購。
+
+### 4. 公費管理
+
+1.  進入 **「公費紀錄」** 頁面。
+2.  可手動 **「新增紀錄」** 來入帳 (例如每人繳交的公費)。
+3.  列表會顯示所有的收支明細與當前餘額。
+
+## 🛠️ 開發者指南 (Development)
+
+如果你想自行修改或編譯程式碼：
+
+### 環境需求
+
+- Node.js (建議 v16 以上)
+- npm
+
+### 指令列表
+
+```bash
+# 安裝依賴
+npm install
+
+# 啟動開發模式 (同時啟動 Vite 與 Electron)
+npm run app:dev
+
+# 打包應用程式 (Windows)
+# 輸出檔案位於 release/ 資料夾
+npm run electron:build
+```
+
+### 專案結構
+
+- `electron/`: Electron 主進程相關程式碼 (後端邏輯、檔案讀寫)。
+- `src/`: Vue 3 前端介面程式碼。
+- `_data/`: 開發模式下的預設資料儲存位置。
+
+## 📄 授權
+
+MIT License

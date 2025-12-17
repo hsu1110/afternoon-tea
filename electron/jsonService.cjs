@@ -262,7 +262,13 @@ class JsonService {
     
     // 如果是新店家，先產生 ID
     if (!shop.id) {
-      shop.id = crypto.randomUUID();
+      // 改用遞增 ID: 找目前最大的數字 ID，然後 +1
+      // 注意：如果舊資料是 UUID (亂碼)，會被視為 0 或忽略，新 ID 會從 1 開始
+      const maxId = shops.reduce((max, s) => {
+        const id = Number(s.id);
+        return Number.isInteger(id) && id > max ? id : max;
+      }, 0);
+      shop.id = (maxId + 1).toString();
     }
 
     const index = shops.findIndex(s => s.id === shop.id);

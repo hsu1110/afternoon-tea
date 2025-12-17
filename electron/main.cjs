@@ -38,9 +38,45 @@ const createWindow = () => {
   // Initialize Data Service
   const config = loadConfig();
   
-  // 優先使用設定檔中的路徑，否則依據環境決定預設路徑
+  // 優先使用設定檔中的路徑
   let dataPath = config.dataDir;
   
+  // [First Run Check] 如果沒有設定路徑，且是在正式環境 (Production)，詢問使用者
+  if (!dataPath && process.env.NODE_ENV !== 'development') {
+    const choice = dialog.showMessageBoxSync({
+      type: 'question',
+      buttons: ['使用預設路徑', '選擇資料夾 (適用於共用資料)'],
+      defaultId: 0,
+      title: '初次設定 - 下午茶轉盤',
+      message: '歡迎使用！請問您要將資料儲存在哪裡？\n\n🔹 使用預設路徑：適合個人使用，資料存在本機。\n🔹 選擇資料夾：若您需要與同事共用資料，請選擇此項並指向共用的網路磁碟或雲端同步資料夾。',
+      cancelId: 0,
+      noLink: true
+    });
+
+    if (choice === 1) {
+      // 使用者選擇自訂資料夾
+      const paths = dialog.showOpenDialogSync({
+        properties: ['openDirectory', 'createDirectory'],
+        title: '選擇資料儲存資料夾',
+        buttonLabel: '選擇此資料夾'
+      });
+      
+      if (paths && paths.length > 0) {
+        dataPath = paths[0];
+      }
+    }
+
+    // 如果使用者選了預設，或取消了選擇，就設定為預設路徑
+    if (!dataPath) {
+      dataPath = path.join(app.getPath('userData'), 'data');
+    }
+
+    // 儲存設定，下次就不會再問了
+    config.dataDir = dataPath;
+    saveConfig(config);
+  }
+  
+  // Fallback (開發模式或防呆)
   if (!dataPath) {
     dataPath = process.env.NODE_ENV === 'development' 
       ? path.join(__dirname, '..', '_data', 'data')
