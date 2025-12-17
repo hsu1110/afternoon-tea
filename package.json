@@ -1,7 +1,9 @@
 {
   "name": "afternoon_tea",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "author": "George",
+  "description": "下午茶",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -9,7 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "cross-env NODE_ENV=development electron .",
-    "app:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5174 && npm run electron:dev\""
+    "app:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5174 && npm run electron:dev\"",
+    "electron:build": "vite build && electron-builder"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
@@ -29,5 +32,20 @@
     "tailwindcss": "^3.4.17",
     "vite": "^7.2.4",
     "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.afternoon_tea.app",
+    "productName": "Afternoon Tea Wheel",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    }
   }
 }

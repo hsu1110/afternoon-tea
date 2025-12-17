@@ -256,8 +256,15 @@ class JsonService {
   }
 
   // 儲存店家 (新增或更新)
+  // 儲存店家 (新增或更新)
   saveShop(shop, imagePath) {
     const shops = this.read('shops.json') || [];
+    
+    // 如果是新店家，先產生 ID
+    if (!shop.id) {
+      shop.id = crypto.randomUUID();
+    }
+
     const index = shops.findIndex(s => s.id === shop.id);
     
     // 處理圖片
@@ -275,10 +282,7 @@ class JsonService {
       // 更新
       shops[index] = { ...shops[index], ...shop };
     } else {
-      // 新增
-      if (!shop.id) {
-        shop.id = crypto.randomUUID();
-      }
+      // 新增 (ID 已經在上面產生了)
       shops.push(shop);
     }
     return this.write('shops.json', shops);
