@@ -22,13 +22,14 @@ const editingSession = ref(null);
 const editingDeadline = ref(null);
 
 // 載入資料
-const loadData = async () => {
+const loadData = async (isInitial = false) => {
   try {
     const data = await window.electronAPI.getOrders();
     activeSessions.value = Array.isArray(data.activeSessions) ? data.activeSessions : (data.activeSession ? [data.activeSession] : []);
     shops.value = await window.electronAPI.getShops();
     
-    if (activeSessions.value.length === 0) {
+    // Only auto-show wheel on initial load if no sessions
+    if (isInitial && activeSessions.value.length === 0) {
       showWheel.value = true;
     }
   } catch (error) {
@@ -65,7 +66,7 @@ const confirmSession = async () => {
 
     showResult.value = false;
     showWheel.value = false;
-    triggerToast(`已開啟 ${shopData.name} 團購！`);
+    triggerToast(`已開啟 ${shopData.name} 訂購！`);
   } catch (error) {
     console.error('Failed to start session:', error);
     triggerToast('開團失敗');
@@ -173,7 +174,7 @@ const handleCheckout = async (session) => {
 const handleCancel = async (session) => {
   const confirmed = await triggerConfirm({
     title: '取消開團',
-    message: `確定要取消 ${session.shopName} 的團購嗎？此操作無法復原。`,
+    message: `確定要取消 ${session.shopName} 的訂購嗎？此操作無法復原。`,
     confirmText: '確定取消',
     type: 'warning'
   });
@@ -202,8 +203,8 @@ const handleSpin = () => {
 };
 
 onMounted(() => {
-  loadData();
-  setInterval(loadData, 10000);
+  loadData(true);
+  setInterval(() => loadData(false), 10000);
 });
 </script>
 
@@ -322,7 +323,7 @@ onMounted(() => {
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div v-if="activeSessions.length === 0" class="col-span-full text-center py-20 text-slate-500">
           <div class="text-4xl mb-4">😴</div>
-          <p class="text-xl">目前沒有進行中的團購</p>
+          <p class="text-xl">目前沒有進行中的訂購</p>
           <p class="text-sm mt-2">點擊上方按鈕來決定今天要吃什麼吧！</p>
         </div>
 

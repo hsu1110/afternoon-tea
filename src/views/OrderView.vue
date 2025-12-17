@@ -175,7 +175,7 @@ onMounted(() => {
     <!-- No Active Session -->
     <div v-if="activeSessions.length === 0" class="text-center py-20">
       <div class="text-6xl mb-6 animate-bounce">😴</div>
-      <h2 class="text-2xl font-bold text-white mb-2">目前沒有進行中的團購</h2>
+      <h2 class="text-2xl font-bold text-white mb-2">目前沒有進行中的訂購</h2>
       <p class="text-slate-400">請稍後再回來查看，或通知主持人開團！</p>
     </div>
 

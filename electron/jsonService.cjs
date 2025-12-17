@@ -70,7 +70,7 @@ class JsonService {
     return null;
   }
 
-  // 取得訂單資料 (支援多團購)
+  // 取得訂單資料 (支援多訂購)
   getOrders() {
     const data = this.read('orders.json');
     if (!data) {
@@ -309,7 +309,7 @@ class JsonService {
     
     // Default to the first active session or return error
     if (!data.activeSessions || data.activeSessions.length === 0) {
-      return { success: false, message: '目前沒有進行中的團購可匯出' };
+      return { success: false, message: '目前沒有進行中的訂購可匯出' };
     }
 
     let session;
@@ -321,7 +321,7 @@ class JsonService {
     }
 
     if (!session) {
-      return { success: false, message: '找不到指定的團購' };
+      return { success: false, message: '找不到指定的訂購' };
     }
 
     const orders = session.orders;
