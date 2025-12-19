@@ -1,10 +1,20 @@
 <script setup>
-import { ref, provide } from 'vue';
+import { ref, provide, onMounted } from 'vue';
 import ConfirmModal from './components/ConfirmModal.vue';
 import TitleBar from './components/TitleBar.vue';
 
 const toastMessage = ref('');
 const showToast = ref(false);
+const appVersion = ref('v1.0.0');
+
+onMounted(async () => {
+  try {
+    const ver = await window.electronAPI.getAppVersion();
+    appVersion.value = `v${ver}`;
+  } catch (e) {
+    console.error('Failed to get app version', e);
+  }
+});
 
 const triggerToast = (msg) => {
   toastMessage.value = msg;
@@ -96,6 +106,15 @@ provide('triggerConfirm', triggerConfirm);
         </router-link>
         
         <router-link 
+          to="/history" 
+          class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group"
+          active-class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10"
+        >
+          <span class="text-xl group-hover:scale-110 transition-transform">📜</span>
+          <span class="font-medium">紀錄</span>
+        </router-link>
+
+        <router-link 
           to="/finance" 
           class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group"
           active-class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10"
@@ -117,7 +136,7 @@ provide('triggerConfirm', triggerConfirm);
       <div class="p-4">
         <div class="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-white/5">
           <div class="text-xs text-slate-500 mb-1">目前版本</div>
-          <div class="text-sm font-mono text-slate-300">v1.0.0 Beta</div>
+          <div class="text-sm font-mono text-slate-300">{{ appVersion }}</div>
         </div>
       </div>
     </aside>

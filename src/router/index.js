@@ -24,6 +24,11 @@ const routes = [
     path: '/admin',
     name: 'admin',
     component: AdminView
+  },
+  {
+    path: '/history',
+    name: 'history',
+    component: () => import('../views/HistoryView.vue')
   }
 ];
 

@@ -116,8 +116,16 @@ const createWindow = () => {
 };
 
 // IPC Handlers
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
 ipcMain.handle('get-shops', () => {
   return jsonService.getShops();
+});
+
+ipcMain.handle('get-history', () => {
+  return jsonService.getHistory();
 });
 
 ipcMain.handle('start-session', (event, { shop, deadline, host }) => {

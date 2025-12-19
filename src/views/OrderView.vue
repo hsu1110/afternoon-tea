@@ -346,12 +346,12 @@ onMounted(() => {
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-400 mb-1">備註 (甜度冰塊)</label>
+                <label class="block text-sm font-medium text-slate-400 mb-1">備註 (甜度冰塊、餐點特製)</label>
                 <input 
                   v-model="currentNote"
                   type="text" 
                   class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
-                  placeholder="例如：微糖少冰"
+                  placeholder="例如：微糖少冰、不要香菜"
                 >
               </div>
 
@@ -393,14 +393,16 @@ onMounted(() => {
                   <span class="font-mono font-bold text-green-400 text-sm mr-2">${{ order.price }}</span>
                   <button 
                     @click="editOrder(order)"
-                    class="p-1.5 bg-blue-600/20 text-blue-400 rounded hover:bg-blue-600 hover:text-white transition-colors"
+                    :disabled="isLocked"
+                    class="p-1.5 bg-blue-600/20 text-blue-400 rounded hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600/20 disabled:hover:text-blue-400"
                     title="編輯"
                   >
                     ✏️
                   </button>
                   <button 
                     @click="deleteOrder(order.id)"
-                    class="p-1.5 bg-rose-600/20 text-rose-400 rounded hover:bg-rose-600 hover:text-white transition-colors"
+                    :disabled="isLocked"
+                    class="p-1.5 bg-rose-600/20 text-rose-400 rounded hover:bg-rose-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-600/20 disabled:hover:text-rose-400"
                     title="刪除"
                   >
                     🗑️

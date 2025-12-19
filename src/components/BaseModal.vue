@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { onMounted, onUnmounted, watch } from 'vue';
+
+const props = defineProps({
   isOpen: {
     type: Boolean,
     required: true
@@ -14,7 +16,21 @@ defineProps({
   }
 });
 
-defineEmits(['close']);
+const emit = defineEmits(['close']);
+
+const handleKeydown = (e) => {
+  if (e.key === 'Escape' && props.isOpen) {
+    emit('close');
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>

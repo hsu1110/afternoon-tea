@@ -70,11 +70,11 @@ class JsonService {
     return null;
   }
 
-  // 取得訂單資料 (支援多訂購)
+  // 取得訂單資料 (只讀取進行中的訂單)
   getOrders() {
     const data = this.read('orders.json');
     if (!data) {
-      return { activeSessions: [], history: [] };
+      return { activeSessions: [] };
     }
     // Migration: If old format (activeSession object), convert to array
     if (data.activeSession && !Array.isArray(data.activeSessions)) {
@@ -84,9 +84,13 @@ class JsonService {
     }
     // Ensure structure
     if (!data.activeSessions) data.activeSessions = [];
-    if (!data.history) data.history = [];
     
     return data;
+  }
+
+  // 取得歷史紀錄
+  getHistory() {
+    return this.read('history.json') || [];
   }
 
   // 開啟新團
@@ -186,8 +190,10 @@ class JsonService {
   // 取得上次點餐紀錄
   getLastOrder(userName, shopId) {
     const data = this.getOrders();
+    const history = this.getHistory();
+    
     // Search in history (reverse order for latest)
-    const allSessions = [...data.activeSessions, ...data.history];
+    const allSessions = [...data.activeSessions, ...history];
     
     // Sort sessions by time desc
     allSessions.sort((a, b) => new Date(b.startTime || 0) - new Date(a.startTime || 0));
@@ -354,7 +360,7 @@ class JsonService {
 
     // 加入總計列
     const total = orders.reduce((sum, order) => sum + (order.price || 0), 0);
-    exportData.push({ '姓名': '總計', '品項': `${orders.length} 杯`, '價格': total, '備註': '', '時間': '' });
+    exportData.push({ '姓名': '總計', '品項': `${orders.length} 項`, '價格': total, '備註': '', '時間': '' });
 
     // 建立工作表
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -414,7 +420,7 @@ class JsonService {
     const session = data.activeSessions[sessionIndex];
     
     // Move to history
-    if (!data.history) data.history = [];
+    const history = this.getHistory();
     
     const historyRecord = {
       ...session,
@@ -423,7 +429,8 @@ class JsonService {
       status: 'completed'
     };
     
-    data.history.push(historyRecord);
+    history.push(historyRecord);
+    this.write('history.json', history);
     
     // Remove from active
     data.activeSessions.splice(sessionIndex, 1);
