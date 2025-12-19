@@ -96,7 +96,8 @@ const createWindow = () => {
     width: 1200,
     height: 800,
     icon: path.join(__dirname, '../public/icon2.png'),
-    autoHideMenuBar: true, // Hide the menu bar
+    frame: false, // Frameless window
+    titleBarStyle: 'hidden', // Hide title bar but keep controls overlay (we will build custom controls)
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -276,4 +277,26 @@ ipcMain.handle('save-member', (event, member) => {
 
 ipcMain.handle('delete-member', (event, id) => {
   return jsonService.deleteMember(id);
+});
+
+// Window Control Handlers
+ipcMain.on('window-minimize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.minimize();
+});
+
+ipcMain.on('window-maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  }
+});
+
+ipcMain.on('window-close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.close();
 });

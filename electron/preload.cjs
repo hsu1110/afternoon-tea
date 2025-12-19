@@ -26,4 +26,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteFundTransaction: (id) => ipcRenderer.invoke('delete-fund-transaction', id),
   getDataPath: () => ipcRenderer.invoke('get-data-path'),
   setDataPath: () => ipcRenderer.invoke('set-data-path'),
+  minimize: () => ipcRenderer.send('window-minimize'),
+  maximize: () => ipcRenderer.send('window-maximize'),
+  close: () => ipcRenderer.send('window-close'),
 });

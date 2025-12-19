@@ -1,6 +1,7 @@
 <script setup>
 import { ref, provide } from 'vue';
 import ConfirmModal from './components/ConfirmModal.vue';
+import TitleBar from './components/TitleBar.vue';
 
 const toastMessage = ref('');
 const showToast = ref(false);
@@ -54,7 +55,10 @@ provide('triggerConfirm', triggerConfirm);
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+  <div class="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white flex flex-col">
+    
+    <!-- Custom Title Bar -->
+    <TitleBar class="fixed top-0 left-0 w-full z-50" />
     
     <!-- Background Effects -->
     <div class="fixed inset-0 z-0 pointer-events-none">
@@ -63,7 +67,7 @@ provide('triggerConfirm', triggerConfirm);
     </div>
 
     <!-- Sidebar -->
-    <aside class="fixed top-0 left-0 h-full w-64 bg-slate-800/40 backdrop-blur-xl border-r border-white/5 flex flex-col z-40 transition-all duration-300">
+    <aside class="fixed top-10 left-0 h-[calc(100%-2.5rem)] w-64 bg-slate-800/40 backdrop-blur-xl border-r border-white/5 flex flex-col z-40 transition-all duration-300">
       <div class="p-8">
         <h1 class="text-2xl font-bold flex items-center gap-3">
           <span class="text-3xl">🎡</span>
@@ -119,7 +123,7 @@ provide('triggerConfirm', triggerConfirm);
     </aside>
 
     <!-- Main Content -->
-    <main class="ml-64 relative z-10 min-h-screen">
+    <main class="ml-64 mt-10 relative z-10 min-h-[calc(100vh-2.5rem)]">
       <div class="p-8 md:p-12 max-w-7xl mx-auto">
         <router-view v-slot="{ Component }">
           <transition name="fade-slide" mode="out-in">
