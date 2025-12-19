@@ -90,13 +90,16 @@ class JsonService {
   }
 
   // 開啟新團
-  startSession(shop, deadline = null) {
+  // 開啟新團
+  startSession(shop, deadline = null, host = null) {
     const data = this.getOrders();
     const newSession = {
       id: crypto.randomUUID(),
       shopId: shop.id,
       shopName: shop.name,
       deadline: deadline,
+      hostId: host ? host.id : null,
+      hostName: host ? host.name : null,
       orders: [],
       startTime: new Date().toISOString(),
       status: 'active'
@@ -456,6 +459,34 @@ class JsonService {
       return this.write('funds.json', newFunds);
     }
     return false;
+  }
+  // 取得成員列表
+  getMembers() {
+    return this.read('members.json') || [];
+  }
+
+  // 儲存成員 (新增或更新)
+  saveMember(member) {
+    const members = this.getMembers();
+    
+    if (!member.id) {
+      member.id = crypto.randomUUID();
+    }
+
+    const index = members.findIndex(m => m.id === member.id);
+    if (index !== -1) {
+      members[index] = { ...members[index], ...member };
+    } else {
+      members.push(member);
+    }
+    return this.write('members.json', members);
+  }
+
+  // 刪除成員
+  deleteMember(id) {
+    const members = this.getMembers();
+    const newMembers = members.filter(m => m.id !== id);
+    return this.write('members.json', newMembers);
   }
 }
 

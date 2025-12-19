@@ -8,12 +8,16 @@ const triggerConfirm = inject('triggerConfirm');
 const activeSessions = ref([]);
 const selectedSessionId = ref(null);
 const menuImage = ref(null);
-const currentUser = ref(localStorage.getItem('lastUser') || '');
+const members = ref([]);
+const selectedMember = ref(null);
+const manualName = ref('');
+const currentUser = computed(() => selectedMember.value ? selectedMember.value.name : manualName.value);
 const currentItem = ref('');
 const currentPrice = ref('');
 const currentNote = ref('');
 const isSubmitting = ref(false);
 const isMenuModalOpen = ref(false);
+const editingOrderId = ref(null);
 
 const selectedSession = computed(() => {
   return activeSessions.value.find(s => s.id === selectedSessionId.value);
@@ -40,6 +44,23 @@ const loadData = async () => {
   try {
     const data = await window.electronAPI.getOrders();
     activeSessions.value = Array.isArray(data.activeSessions) ? data.activeSessions : (data.activeSession ? [data.activeSession] : []);
+    members.value = await window.electronAPI.getMembers();
+    
+    // Restore last user selection (Only on first load)
+    if (!selectedMember.value && !manualName.value) {
+      const lastUserName = localStorage.getItem('lastUser');
+      if (lastUserName) {
+        // Normalize for comparison (trim)
+        const normalizedLastUser = lastUserName.trim();
+        const member = members.value.find(m => m.name.trim() === normalizedLastUser);
+        
+        if (member) {
+          selectedMember.value = member;
+        } else {
+          manualName.value = lastUserName;
+        }
+      }
+    }
     
     // 如果沒有選中的 session，預設選第一個
     if (activeSessions.value.length > 0 && !selectedSessionId.value) {
@@ -83,6 +104,8 @@ watch(selectedSessionId, (newId) => {
 
 // 快速帶入上次點餐
 const quickFillLastOrder = async () => {
+  // Don't overwrite if editing
+  if (editingOrderId.value) return;
   if (!currentUser.value || !selectedSession.value) return;
   
   try {
@@ -119,24 +142,57 @@ const submitOrder = async () => {
       note: currentNote.value
     };
 
-    await window.electronAPI.submitOrder(order);
+    if (editingOrderId.value) {
+      // Update existing order
+      await window.electronAPI.updateOrder({
+        id: editingOrderId.value,
+        ...order
+      });
+      triggerToast('訂單已更新！');
+    } else {
+      // Create new order
+      await window.electronAPI.submitOrder(order);
+      triggerToast('點餐成功！');
+    }
     
     // Save user preference
     localStorage.setItem('lastUser', currentUser.value);
     
-    // Reset form (keep user)
-    currentItem.value = '';
-    currentPrice.value = '';
-    currentNote.value = '';
+    // Reset form
+    cancelEdit();
     
     await loadData();
-    triggerToast('點餐成功！');
   } catch (error) {
     console.error('Failed to submit order:', error);
-    triggerToast(error.message || '點餐失敗');
+    triggerToast(error.message || '操作失敗');
   } finally {
     isSubmitting.value = false;
   }
+};
+
+const editOrder = (order) => {
+  editingOrderId.value = order.id;
+  currentItem.value = order.item;
+  currentPrice.value = order.price;
+  currentNote.value = order.note || '';
+  
+  // Try to match user
+  const member = members.value.find(m => m.name === order.name);
+  if (member) {
+    selectedMember.value = member;
+    manualName.value = '';
+  } else {
+    selectedMember.value = null;
+    manualName.value = order.name;
+  }
+};
+
+const cancelEdit = () => {
+  editingOrderId.value = null;
+  currentItem.value = '';
+  currentPrice.value = '';
+  currentNote.value = '';
+  // Don't reset user, keep current selection
 };
 
 const deleteOrder = async (orderId) => {
@@ -236,20 +292,34 @@ onMounted(() => {
           <!-- Order Form -->
           <div class="bg-slate-800/80 backdrop-blur-md border border-slate-600 rounded-2xl p-6 shadow-xl sticky top-6">
             <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <span>📝</span> 我要點餐
+              <span>{{ editingOrderId ? '✏️ 編輯訂單' : '📝 我要點餐' }}</span>
             </h3>
             
             <form @submit.prevent="submitOrder" class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-slate-400 mb-1">姓名</label>
-                <input 
-                  v-model="currentUser"
-                  @blur="quickFillLastOrder"
-                  type="text" 
-                  required
-                  class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
-                  placeholder="輸入姓名自動帶入上次紀錄"
-                >
+                <div class="flex gap-2">
+                  <select 
+                    v-model="selectedMember"
+                    @change="() => { manualName = ''; quickFillLastOrder(); }"
+                    class="flex-1 bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!!editingOrderId"
+                  >
+                    <option :value="null">-- 選擇成員 --</option>
+                    <option v-for="member in members" :key="member.id" :value="member">
+                      {{ member.name }}
+                    </option>
+                  </select>
+                  <input 
+                    v-if="!selectedMember"
+                    v-model="manualName"
+                    @blur="quickFillLastOrder"
+                    type="text" 
+                    class="flex-1 bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    placeholder="手動輸入姓名"
+                    :disabled="!!editingOrderId"
+                  >
+                </div>
               </div>
 
               <div class="grid grid-cols-2 gap-4">
@@ -285,13 +355,23 @@ onMounted(() => {
                 >
               </div>
 
-              <button 
-                type="submit"
-                :disabled="isSubmitting || isLocked"
-                class="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-green-500/20 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {{ isLocked ? '已截止' : (isSubmitting ? '送出中...' : '送出訂單') }}
-              </button>
+              <div class="flex gap-3">
+                <button 
+                  v-if="editingOrderId"
+                  type="button"
+                  @click="cancelEdit"
+                  class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-colors"
+                >
+                  取消
+                </button>
+                <button 
+                  type="submit"
+                  :disabled="isSubmitting || isLocked"
+                  class="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-green-500/20 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {{ isLocked ? '已截止' : (isSubmitting ? '處理中...' : (editingOrderId ? '更新訂單' : '送出訂單')) }}
+                </button>
+              </div>
             </form>
           </div>
 
@@ -309,12 +389,18 @@ onMounted(() => {
                   <div class="font-bold text-white text-sm">{{ order.name }}</div>
                   <div class="text-xs text-slate-400">{{ order.item }} <span v-if="order.note" class="text-slate-500">({{ order.note }})</span></div>
                 </div>
-                <div class="flex items-center gap-3">
-                  <span class="font-mono font-bold text-green-400 text-sm">${{ order.price }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono font-bold text-green-400 text-sm mr-2">${{ order.price }}</span>
                   <button 
-                    v-if="order.name === currentUser"
+                    @click="editOrder(order)"
+                    class="p-1.5 bg-blue-600/20 text-blue-400 rounded hover:bg-blue-600 hover:text-white transition-colors"
+                    title="編輯"
+                  >
+                    ✏️
+                  </button>
+                  <button 
                     @click="deleteOrder(order.id)"
-                    class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    class="p-1.5 bg-rose-600/20 text-rose-400 rounded hover:bg-rose-600 hover:text-white transition-colors"
                     title="刪除"
                   >
                     🗑️

@@ -2,7 +2,10 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getShops: () => ipcRenderer.invoke('get-shops'),
-  startSession: (shop, deadline) => ipcRenderer.invoke('start-session', { shop, deadline }),
+  getMembers: () => ipcRenderer.invoke('get-members'),
+  saveMember: (member) => ipcRenderer.invoke('save-member', member),
+  deleteMember: (id) => ipcRenderer.invoke('delete-member', id),
+  startSession: (shop, deadline, host) => ipcRenderer.invoke('start-session', { shop, deadline, host }),
   updateWeights: (winnerId) => ipcRenderer.invoke('update-weights', winnerId),
   submitOrder: (order) => ipcRenderer.invoke('submit-order', order),
   deleteOrder: (orderId) => ipcRenderer.invoke('delete-order', orderId),

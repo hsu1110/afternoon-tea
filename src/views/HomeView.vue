@@ -9,12 +9,14 @@ const triggerConfirm = inject('triggerConfirm');
 const activeSessions = ref([]);
 const showWheel = ref(false);
 const shops = ref([]);
+const members = ref([]);
 
 // Wheel & Result Modal State
 const wheelRef = ref(null);
 const selectedShop = ref(null);
 const showResult = ref(false);
 const deadline = ref(null);
+const selectedHost = ref(null);
 
 // UX Improvements State
 const showShopSelector = ref(false);
@@ -28,6 +30,7 @@ const loadData = async (isInitial = false) => {
     const data = await window.electronAPI.getOrders();
     activeSessions.value = Array.isArray(data.activeSessions) ? data.activeSessions : (data.activeSession ? [data.activeSession] : []);
     shops.value = await window.electronAPI.getShops();
+    members.value = await window.electronAPI.getMembers();
     
     // Only auto-show wheel on initial load if no sessions
     if (isInitial && activeSessions.value.length === 0) {
@@ -45,6 +48,7 @@ const onSpinEnd = (shop) => {
   const now = new Date();
   now.setMinutes(now.getMinutes() + 30);
   deadline.value = now;
+  selectedHost.value = null; // Reset host
   
   showResult.value = true;
 };
@@ -56,8 +60,9 @@ const confirmSession = async () => {
   try {
     const shopData = JSON.parse(JSON.stringify(selectedShop.value));
     const deadlineISO = deadline.value ? deadline.value.toISOString() : null;
+    const hostData = selectedHost.value ? JSON.parse(JSON.stringify(selectedHost.value)) : null;
     
-    const newSession = await window.electronAPI.startSession(shopData, deadlineISO);
+    const newSession = await window.electronAPI.startSession(shopData, deadlineISO, hostData);
     await window.electronAPI.updateWeights(shopData.id);
     
     activeSessions.value.push(newSession);
@@ -135,9 +140,11 @@ const confirmEditDeadline = async () => {
 // 複製訂購連結文字
 const copyGroupBuyText = (session) => {
   const deadlineTime = session.deadline ? new Date(session.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '無';
+  const hostText = session.hostName ? `負責人：${session.hostName}` : '';
   const text = `
 下午茶開團囉！🎉
 店家：${session.shopName}
+${hostText}
 截止時間：${deadlineTime}
 
 請大家盡快點餐喔！
@@ -297,19 +304,33 @@ onMounted(() => {
                 />
               </div>
 
+              <!-- Host Selection -->
+              <div class="mb-6">
+                <label class="block text-sm text-slate-400 mb-2">👑 負責人</label>
+                <select 
+                  v-model="selectedHost"
+                  class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option :value="null">-- 選擇負責人 --</option>
+                  <option v-for="member in members" :key="member.id" :value="member">
+                    {{ member.name }}
+                  </option>
+                </select>
+              </div>
+
               <!-- Action Buttons -->
               <div class="grid grid-cols-2 gap-3 mt-4">
                 <button 
                   @click="showResult = false"
                   class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold transition-colors"
                 >
-                  再抽一次
+                  重新選擇
                 </button>
                 <button 
                   @click="confirmSession"
                   class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-500 font-bold shadow-lg shadow-blue-500/25 transition-all transform hover:-translate-y-0.5"
                 >
-                  確認開團
+                  確認開訂
                 </button>
               </div>
             </div>
@@ -341,6 +362,7 @@ onMounted(() => {
               <div>
                 <h2 class="text-2xl font-bold text-white mb-1">{{ session.shopName }}</h2>
                 <div class="flex items-center gap-2 text-sm text-slate-400">
+                  <span v-if="session.hostName" class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-xs">👑 {{ session.hostName }}</span>
                   <span>🕒 截止：{{ session.deadline ? new Date(session.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '無' }}</span>
                   <button 
                     @click="openEditDeadline(session)"

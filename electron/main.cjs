@@ -96,6 +96,7 @@ const createWindow = () => {
     width: 1200,
     height: 800,
     icon: path.join(__dirname, '../public/icon2.png'),
+    autoHideMenuBar: true, // Hide the menu bar
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -118,8 +119,8 @@ ipcMain.handle('get-shops', () => {
   return jsonService.getShops();
 });
 
-ipcMain.handle('start-session', (event, { shop, deadline }) => {
-  return jsonService.startSession(shop, deadline);
+ipcMain.handle('start-session', (event, { shop, deadline, host }) => {
+  return jsonService.startSession(shop, deadline, host);
 });
 
 ipcMain.handle('update-weights', (event, winnerId) => {
@@ -265,4 +266,14 @@ app.on('window-all-closed', () => {
   }
 });
 
-// IPC Handlers will be added here
+ipcMain.handle('get-members', () => {
+  return jsonService.getMembers();
+});
+
+ipcMain.handle('save-member', (event, member) => {
+  return jsonService.saveMember(member);
+});
+
+ipcMain.handle('delete-member', (event, id) => {
+  return jsonService.deleteMember(id);
+});
