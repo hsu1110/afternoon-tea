@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted, computed, inject, watch } from 'vue';
+import { ref, onMounted, computed, inject, watch, nextTick } from 'vue';
+import ZoomableImageModal from '../components/ZoomableImageModal.vue';
 
 const triggerToast = inject('triggerToast');
 const triggerConfirm = inject('triggerConfirm');
@@ -12,11 +13,11 @@ const currentItem = ref('');
 const currentPrice = ref('');
 const currentNote = ref('');
 const isSubmitting = ref(false);
+const isMenuModalOpen = ref(false);
 
 const selectedSession = computed(() => {
   return activeSessions.value.find(s => s.id === selectedSessionId.value);
 });
-
 const timeLeft = computed(() => {
   if (!selectedSession.value || !selectedSession.value.deadline) return '';
   const now = new Date();
@@ -210,10 +211,20 @@ onMounted(() => {
             </h2>
             
             <!-- Menu Image -->
-            <div class="aspect-[3/4] bg-slate-900/50 rounded-xl overflow-hidden border border-slate-700 relative group cursor-zoom-in">
-              <img v-if="menuImage" :src="menuImage" class="w-full h-full object-contain hover:scale-110 transition-transform duration-500" alt="Menu">
+            <div 
+              class="aspect-[3/4] bg-slate-900/50 rounded-xl overflow-hidden border border-slate-700 relative group cursor-zoom-in"
+              @click="isMenuModalOpen = true"
+            >
+              <img v-if="menuImage" :src="menuImage" class="w-full h-full object-contain hover:scale-105 transition-transform duration-500" alt="Menu">
               <div v-else class="w-full h-full flex items-center justify-center text-slate-500">
                 尚無菜單圖片
+              </div>
+              
+              <!-- Hint overlay -->
+              <div v-if="menuImage" class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <span class="bg-black/50 text-white px-4 py-2 rounded-full backdrop-blur-sm text-sm font-bold">
+                  點擊放大
+                </span>
               </div>
             </div>
           </div>
@@ -320,6 +331,13 @@ onMounted(() => {
         </div>
       </div>
     </div>
+    <!-- Menu Modal -->
+    <!-- Menu Modal -->
+    <ZoomableImageModal 
+      :is-open="isMenuModalOpen" 
+      :image-src="menuImage" 
+      @close="isMenuModalOpen = false" 
+    />
   </div>
 </template>
 

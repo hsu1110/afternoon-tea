@@ -1,0 +1,201 @@
+<script setup>
+import { ref, computed, watch, nextTick } from 'vue';
+
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    required: true
+  },
+  imageSrc: {
+    type: String,
+    default: null
+  }
+});
+
+const emit = defineEmits(['close']);
+
+const imageContainer = ref(null);
+const imageRef = ref(null);
+const zoomLevel = ref(1);
+const baseDimensions = ref({ width: 0, height: 0 });
+const isDragging = ref(false);
+const hasDragged = ref(false);
+const startPos = { x: 0, y: 0 };
+const scrollPos = { x: 0, y: 0 };
+const isZoomed = ref(false);
+
+watch(() => props.isOpen, (newVal) => {
+  if (newVal) {
+    zoomLevel.value = 1;
+    isZoomed.value = false;
+  }
+});
+
+const imageStyle = computed(() => {
+  if (zoomLevel.value <= 1) return {};
+  return {
+    width: `${baseDimensions.value.width * zoomLevel.value}px`,
+    height: `${baseDimensions.value.height * zoomLevel.value}px`,
+    maxWidth: 'none',
+    maxHeight: 'none'
+  };
+});
+
+const onWheel = async (e) => {
+  if (!imageContainer.value || !imageRef.value) return;
+  e.preventDefault();
+
+  const container = imageContainer.value;
+  const rect = imageRef.value.getBoundingClientRect();
+  
+  // If starting from default state, capture base dimensions
+  if (zoomLevel.value === 1) {
+    baseDimensions.value = {
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  // Calculate mouse position relative to image (0-1)
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  const ratioX = mouseX / rect.width;
+  const ratioY = mouseY / rect.height;
+
+  // Calculate new zoom level
+  const delta = -Math.sign(e.deltaY) * 0.2;
+  const newZoom = Math.max(1, Math.min(5, zoomLevel.value + delta));
+  
+  if (newZoom === zoomLevel.value) return;
+
+  const oldWidth = baseDimensions.value.width * zoomLevel.value;
+  const newWidth = baseDimensions.value.width * newZoom;
+  
+  const oldHeight = baseDimensions.value.height * zoomLevel.value;
+  const newHeight = baseDimensions.value.height * newZoom;
+
+  const scrollAdjustX = (newWidth - oldWidth) * ratioX;
+  const scrollAdjustY = (newHeight - oldHeight) * ratioY;
+
+  zoomLevel.value = newZoom;
+  isZoomed.value = newZoom > 1;
+
+  await nextTick();
+  container.scrollLeft += scrollAdjustX;
+  container.scrollTop += scrollAdjustY;
+};
+
+const onMouseDown = (e) => {
+  if (zoomLevel.value <= 1) return;
+  isDragging.value = true;
+  hasDragged.value = false;
+  startPos.x = e.clientX;
+  startPos.y = e.clientY;
+  if (imageContainer.value) {
+    scrollPos.x = imageContainer.value.scrollLeft;
+    scrollPos.y = imageContainer.value.scrollTop;
+  }
+};
+
+const onMouseMove = (e) => {
+  if (!isDragging.value || zoomLevel.value <= 1) return;
+  e.preventDefault();
+  const dx = e.clientX - startPos.x;
+  const dy = e.clientY - startPos.y;
+  
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    hasDragged.value = true;
+  }
+
+  if (imageContainer.value) {
+    imageContainer.value.scrollLeft = scrollPos.x - dx;
+    imageContainer.value.scrollTop = scrollPos.y - dy;
+  }
+};
+
+const onMouseUp = () => {
+  isDragging.value = false;
+};
+
+const handleImageClick = async (e) => {
+  if (hasDragged.value) {
+    hasDragged.value = false;
+    return;
+  }
+
+  if (zoomLevel.value > 1) {
+    // Reset
+    zoomLevel.value = 1;
+    isZoomed.value = false;
+  } else {
+    // Zoom in
+    if (!imageRef.value || !imageContainer.value) return;
+    
+    // Capture base dimensions
+    const rect = imageRef.value.getBoundingClientRect();
+    baseDimensions.value = {
+      width: rect.width,
+      height: rect.height
+    };
+
+    const targetZoom = 2.5;
+    
+    // Calculate click position ratio
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    const xPercent = offsetX / rect.width;
+    const yPercent = offsetY / rect.height;
+
+    zoomLevel.value = targetZoom;
+    isZoomed.value = true;
+
+    await nextTick();
+    const container = imageContainer.value;
+    // Center the clicked point
+    container.scrollLeft = (baseDimensions.value.width * targetZoom * xPercent) - (container.clientWidth / 2);
+    container.scrollTop = (baseDimensions.value.height * targetZoom * yPercent) - (container.clientHeight / 2);
+  }
+};
+
+const close = () => {
+  emit('close');
+};
+</script>
+
+<template>
+  <Teleport to="body">
+    <div v-if="isOpen" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4" @click.self="close">
+      <button 
+        @click="close"
+        class="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all z-10"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      
+      <div 
+        ref="imageContainer"
+        class="relative w-full h-full overflow-auto select-none flex"
+        :class="{'cursor-grab': zoomLevel > 1 && !isDragging, 'cursor-grabbing': zoomLevel > 1 && isDragging}"
+        @mousedown="onMouseDown"
+        @mousemove="onMouseMove"
+        @mouseup="onMouseUp"
+        @mouseleave="onMouseUp"
+        @wheel="onWheel"
+        @click.self="close"
+      >
+        <img 
+          ref="imageRef"
+          :src="imageSrc" 
+          class="transition-transform duration-100 shadow-2xl rounded-lg m-auto flex-shrink-0"
+          :class="zoomLevel > 1 ? 'cursor-zoom-out' : 'max-w-full max-h-full object-contain cursor-zoom-in'"
+          :style="imageStyle"
+          alt="Menu Full Size"
+          @click.stop="handleImageClick"
+          @dragstart.prevent
+        >
+      </div>
+    </div>
+  </Teleport>
+</template>

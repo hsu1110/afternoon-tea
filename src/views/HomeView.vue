@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue';
 import Wheel from '../components/Wheel.vue';
+import BaseModal from '../components/BaseModal.vue';
 
 const triggerToast = inject('triggerToast');
 const triggerConfirm = inject('triggerConfirm');
@@ -269,54 +270,51 @@ onMounted(() => {
         </div>
 
         <!-- Result Modal -->
-        <div v-if="showResult" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" @click="showResult = false"></div>
-          <div class="relative bg-slate-800 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl transform transition-all scale-100 opacity-100">
+        <!-- Result Modal -->
+        <BaseModal :is-open="showResult" max-width="max-w-md" custom-class="p-8" @close="showResult = false">
+          <div class="text-center">
+            <div class="text-6xl mb-4 animate-bounce">🎉</div>
+            <h3 class="text-2xl font-bold text-white mb-2">就決定是你了！</h3>
+            <div class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400 mb-6">
+              {{ selectedShop?.name }}
+            </div>
             
-            <div class="text-center">
-              <div class="text-6xl mb-4 animate-bounce">🎉</div>
-              <h3 class="text-2xl font-bold text-white mb-2">就決定是你了！</h3>
-              <div class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400 mb-6">
-                {{ selectedShop?.name }}
+            <div class="bg-slate-900/50 rounded-xl p-4 mb-6 text-left">
+              <div class="flex items-center gap-2 mb-2 text-slate-300">
+                <span>📞 {{ selectedShop?.phone || '無電話' }}</span>
               </div>
               
-              <div class="bg-slate-900/50 rounded-xl p-4 mb-6 text-left">
-                <div class="flex items-center gap-2 mb-2 text-slate-300">
-                  <span>📞 {{ selectedShop?.phone || '無電話' }}</span>
-                </div>
-                
-                <!-- Deadline Input -->
-                <div class="mb-6">
-                  <label class="block text-sm text-slate-400 mb-2">⏱️ 截止時間</label>
-                  <el-date-picker
-                    v-model="deadline"
-                    type="datetime"
-                    placeholder="選擇日期時間"
-                    format="YYYY-MM-DD HH:mm"
-                    class="w-full"
-                    :teleported="false"
-                  />
-                </div>
+              <!-- Deadline Input -->
+              <div class="mb-6">
+                <label class="block text-sm text-slate-400 mb-2">⏱️ 截止時間</label>
+                <el-date-picker
+                  v-model="deadline"
+                  type="datetime"
+                  placeholder="選擇日期時間"
+                  format="YYYY-MM-DD HH:mm"
+                  class="w-full"
+                  :teleported="false"
+                />
+              </div>
 
-                <!-- Action Buttons -->
-                <div class="grid grid-cols-2 gap-3 mt-4">
-                  <button 
-                    @click="showResult = false"
-                    class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold transition-colors"
-                  >
-                    再抽一次
-                  </button>
-                  <button 
-                    @click="confirmSession"
-                    class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-500 font-bold shadow-lg shadow-blue-500/25 transition-all transform hover:-translate-y-0.5"
-                  >
-                    確認開團
-                  </button>
-                </div>
+              <!-- Action Buttons -->
+              <div class="grid grid-cols-2 gap-3 mt-4">
+                <button 
+                  @click="showResult = false"
+                  class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold transition-colors"
+                >
+                  再抽一次
+                </button>
+                <button 
+                  @click="confirmSession"
+                  class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-500 font-bold shadow-lg shadow-blue-500/25 transition-all transform hover:-translate-y-0.5"
+                >
+                  確認開團
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        </BaseModal>
       </div>
 
       <!-- Active Sessions List -->
@@ -418,61 +416,57 @@ onMounted(() => {
 
     <!-- Modals (Moved outside to ensure visibility) -->
     <!-- Shop Selector Modal -->
-    <div v-if="showShopSelector" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" @click="showShopSelector = false"></div>
-      <div class="relative bg-slate-800 border border-slate-700 rounded-3xl p-6 max-w-2xl w-full shadow-2xl max-h-[80vh] overflow-y-auto custom-scrollbar">
-        <h3 class="text-2xl font-bold text-white mb-6 text-center">選擇店家</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <button 
-            v-for="shop in shops" 
-            :key="shop.id"
-            @click="selectShop(shop)"
-            class="p-4 bg-slate-700 hover:bg-blue-600 rounded-xl text-white font-bold transition-all text-center group flex items-center justify-center min-h-[80px]"
-          >
-            <div class="text-lg">{{ shop.name }}</div>
-          </button>
-        </div>
+    <!-- Shop Selector Modal -->
+    <BaseModal :is-open="showShopSelector" max-width="max-w-2xl" custom-class="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar" @close="showShopSelector = false">
+      <h3 class="text-2xl font-bold text-white mb-6 text-center">選擇店家</h3>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         <button 
-          @click="showShopSelector = false"
-          class="mt-6 w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-bold transition-colors"
+          v-for="shop in shops" 
+          :key="shop.id"
+          @click="selectShop(shop)"
+          class="p-4 bg-slate-700 hover:bg-blue-600 rounded-xl text-white font-bold transition-all text-center group flex items-center justify-center min-h-[80px]"
+        >
+          <div class="text-lg">{{ shop.name }}</div>
+        </button>
+      </div>
+      <button 
+        @click="showShopSelector = false"
+        class="mt-6 w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-bold transition-colors"
+      >
+        取消
+      </button>
+    </BaseModal>
+
+    <!-- Edit Deadline Modal -->
+    <!-- Edit Deadline Modal -->
+    <BaseModal :is-open="showEditDeadlineModal" max-width="max-w-md" custom-class="p-6" @close="showEditDeadlineModal = false">
+      <h3 class="text-xl font-bold text-white mb-4 text-center">修改截止時間</h3>
+      <div class="mb-6">
+        <label class="block text-sm text-slate-400 mb-2">新的截止時間</label>
+        <el-date-picker
+          v-model="editingDeadline"
+          type="datetime"
+          placeholder="選擇日期時間"
+          format="YYYY-MM-DD HH:mm"
+          class="w-full"
+          :teleported="false"
+        />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <button 
+          @click="showEditDeadlineModal = false"
+          class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold transition-colors"
         >
           取消
         </button>
+        <button 
+          @click="confirmEditDeadline"
+          class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-500 font-bold shadow-lg shadow-blue-500/25 transition-all"
+        >
+          確認修改
+        </button>
       </div>
-    </div>
-
-    <!-- Edit Deadline Modal -->
-    <div v-if="showEditDeadlineModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" @click="showEditDeadlineModal = false"></div>
-      <div class="relative bg-slate-800 border border-slate-700 rounded-3xl p-6 max-w-md w-full shadow-2xl">
-        <h3 class="text-xl font-bold text-white mb-4 text-center">修改截止時間</h3>
-        <div class="mb-6">
-          <label class="block text-sm text-slate-400 mb-2">新的截止時間</label>
-          <el-date-picker
-            v-model="editingDeadline"
-            type="datetime"
-            placeholder="選擇日期時間"
-            format="YYYY-MM-DD HH:mm"
-            class="w-full"
-            :teleported="false"
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <button 
-            @click="showEditDeadlineModal = false"
-            class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold transition-colors"
-          >
-            取消
-          </button>
-          <button 
-            @click="confirmEditDeadline"
-            class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-500 font-bold shadow-lg shadow-blue-500/25 transition-all"
-          >
-            確認修改
-          </button>
-        </div>
-      </div>
-    </div>
+    </BaseModal>
   </div>
 </template>
 

@@ -54,7 +54,7 @@ provide('triggerConfirm', triggerConfirm);
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white overflow-hidden flex">
+  <div class="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
     
     <!-- Background Effects -->
     <div class="fixed inset-0 z-0 pointer-events-none">
@@ -63,7 +63,7 @@ provide('triggerConfirm', triggerConfirm);
     </div>
 
     <!-- Sidebar -->
-    <aside class="w-64 bg-slate-800/40 backdrop-blur-xl border-r border-white/5 flex flex-col z-20 transition-all duration-300">
+    <aside class="fixed top-0 left-0 h-full w-64 bg-slate-800/40 backdrop-blur-xl border-r border-white/5 flex flex-col z-40 transition-all duration-300">
       <div class="p-8">
         <h1 class="text-2xl font-bold flex items-center gap-3">
           <span class="text-3xl">🎡</span>
@@ -119,7 +119,7 @@ provide('triggerConfirm', triggerConfirm);
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 relative z-10 overflow-y-auto custom-scrollbar">
+    <main class="ml-64 relative z-10 min-h-screen">
       <div class="p-8 md:p-12 max-w-7xl mx-auto">
         <router-view v-slot="{ Component }">
           <transition name="fade-slide" mode="out-in">

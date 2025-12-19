@@ -1,0 +1,45 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cupGradient" x1="100" y1="100" x2="400" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="teaGradient" x1="150" y1="150" x2="350" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <!-- Steam -->
+  <path d="M200 80C200 80 180 120 200 140" stroke="#cbd5e1" stroke-width="12" stroke-linecap="round" opacity="0.6">
+    <animate attributeName="d" values="M200 80C200 80 180 120 200 140;M200 70C220 110 200 150 200 150;M200 80C200 80 180 120 200 140" dur="3s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0.6;0.3;0.6" dur="3s" repeatCount="indefinite" />
+  </path>
+  <path d="M256 60C256 60 236 100 256 120" stroke="#cbd5e1" stroke-width="12" stroke-linecap="round" opacity="0.6">
+    <animate attributeName="d" values="M256 60C256 60 236 100 256 120;M256 50C276 90 256 130 256 130;M256 60C256 60 236 100 256 120" dur="4s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0.6;0.3;0.6" dur="4s" repeatCount="indefinite" />
+  </path>
+  <path d="M312 80C312 80 292 120 312 140" stroke="#cbd5e1" stroke-width="12" stroke-linecap="round" opacity="0.6">
+    <animate attributeName="d" values="M312 80C312 80 292 120 312 140;M312 70C332 110 312 150 312 150;M312 80C312 80 292 120 312 140" dur="3.5s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0.6;0.3;0.6" dur="3.5s" repeatCount="indefinite" />
+  </path>
+
+  <!-- Cup Handle -->
+  <path d="M380 200C430 200 450 230 450 270C450 310 420 340 380 350" stroke="url(#cupGradient)" stroke-width="30" stroke-linecap="round" fill="none" />
+
+  <!-- Cup Body -->
+  <path d="M100 180H412C412 180 400 380 256 380C112 380 100 180 100 180Z" fill="url(#cupGradient)" filter="url(#glow)" />
+  
+  <!-- Tea Liquid -->
+  <path d="M115 190H397C395 210 390 350 256 350C122 350 117 210 115 190Z" fill="url(#teaGradient)" opacity="0.9" />
+
+  <!-- Saucer -->
+  <path d="M80 390H432" stroke="#475569" stroke-width="16" stroke-linecap="round" />
+  
+  <!-- Shine -->
+  <path d="M130 200Q140 300 180 340" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.3" />
+</svg>
