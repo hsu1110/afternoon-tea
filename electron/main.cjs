@@ -109,7 +109,7 @@ const createWindow = () => {
   // In development, load the local server URL.
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5174');
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools(); // Disable auto-open DevTools
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
