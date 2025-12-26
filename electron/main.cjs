@@ -95,7 +95,7 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(__dirname, '../public/icon2.png'),
+    icon: path.join(__dirname, '../public/icon.png'),
     frame: false, // Frameless window
     titleBarStyle: 'hidden', // Hide title bar but keep controls overlay (we will build custom controls)
     webPreferences: {
