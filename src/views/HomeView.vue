@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, inject } from 'vue';
+import { ref, onMounted, inject, computed } from 'vue';
 import Wheel from '../components/Wheel.vue';
 import BaseModal from '../components/BaseModal.vue';
 
@@ -17,6 +17,7 @@ const selectedShop = ref(null);
 const showResult = ref(false);
 const deadline = ref(null);
 const selectedHost = ref(null);
+const wheelCategory = ref('drink'); // 'drink' or 'food'
 
 // UX Improvements State
 const showShopSelector = ref(false);
@@ -29,7 +30,8 @@ const loadData = async (isInitial = false) => {
   try {
     const data = await window.electronAPI.getOrders();
     activeSessions.value = Array.isArray(data.activeSessions) ? data.activeSessions : (data.activeSession ? [data.activeSession] : []);
-    shops.value = await window.electronAPI.getShops();
+    const allShops = await window.electronAPI.getShops();
+    shops.value = allShops.map(s => ({ ...s, category: s.category || 'drink' }));
     members.value = await window.electronAPI.getMembers();
     
     // Only auto-show wheel on initial load if no sessions
@@ -40,6 +42,10 @@ const loadData = async (isInitial = false) => {
     console.error('Failed to load data:', error);
   }
 };
+
+const wheelShops = computed(() => {
+  return shops.value.filter(s => s.category === wheelCategory.value);
+});
 
 // 抽獎結束
 const onSpinEnd = (shop) => {
@@ -68,7 +74,8 @@ const confirmSession = async () => {
     activeSessions.value.push(newSession);
     
     // Refresh shops to update weights
-    shops.value = await window.electronAPI.getShops();
+    const allShops = await window.electronAPI.getShops();
+    shops.value = allShops.map(s => ({ ...s, category: s.category || 'drink' }));
 
     showResult.value = false;
     showWheel.value = false;
@@ -255,24 +262,53 @@ onMounted(() => {
         <div class="text-center mb-8">
           <h2 class="text-4xl font-bold text-white mb-2 tracking-tight">今天下午茶吃什麼？</h2>
           <p class="text-slate-400 text-lg">讓命運之輪來決定吧！</p>
+          
+          <!-- Wheel Category Toggle -->
+          <div class="flex justify-center mt-6">
+            <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+              <button 
+                @click="wheelCategory = 'drink'"
+                class="px-6 py-2 rounded-lg font-bold transition-all flex items-center gap-2"
+                :class="wheelCategory === 'drink' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'"
+              >
+                <span>🥤</span> 飲料轉盤
+              </button>
+              <button 
+                @click="wheelCategory = 'food'"
+                class="px-6 py-2 rounded-lg font-bold transition-all flex items-center gap-2"
+                :class="wheelCategory === 'food' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'"
+              >
+                <span>🍱</span> 食物轉盤
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="relative mb-12">
           <div class="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full pointer-events-none"></div>
-          <Wheel 
-            ref="wheelRef" 
-            :shops="shops" 
-            @spin-end="onSpinEnd" 
-          />
           
-          <!-- Spin Button -->
-          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4 z-10">
-            <button 
-              @click="handleSpin"
-              class="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg shadow-orange-500/50 flex items-center justify-center text-white font-bold text-2xl hover:scale-110 active:scale-95 transition-all duration-300 border-4 border-slate-900"
-            >
-              GO!
-            </button>
+          <div v-if="wheelShops.length > 0">
+            <Wheel 
+              ref="wheelRef" 
+              :shops="wheelShops" 
+              @spin-end="onSpinEnd" 
+            />
+            
+            <!-- Spin Button -->
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4 z-10">
+              <button 
+                @click="handleSpin"
+                class="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg shadow-orange-500/50 flex items-center justify-center text-white font-bold text-2xl hover:scale-110 active:scale-95 transition-all duration-300 border-4 border-slate-900"
+              >
+                GO!
+              </button>
+            </div>
+          </div>
+          
+          <div v-else class="text-center py-20 bg-slate-800/50 rounded-3xl border border-slate-700 backdrop-blur-sm max-w-2xl mx-auto">
+             <div class="text-6xl mb-4">📭</div>
+             <h3 class="text-2xl font-bold text-white mb-2">這個分類還沒有店家</h3>
+             <p class="text-slate-400">請先到「店家管理」新增店家喔！</p>
           </div>
         </div>
 
@@ -441,15 +477,40 @@ onMounted(() => {
     <!-- Shop Selector Modal -->
     <BaseModal :is-open="showShopSelector" max-width="max-w-2xl" custom-class="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar" @close="showShopSelector = false">
       <h3 class="text-2xl font-bold text-white mb-6 text-center">選擇店家</h3>
+      
+      <!-- Category Tabs for Selector -->
+      <div class="flex justify-center mb-6">
+        <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+          <button 
+            @click="wheelCategory = 'drink'"
+            class="px-6 py-2 rounded-lg font-bold transition-all flex items-center gap-2"
+            :class="wheelCategory === 'drink' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'"
+          >
+            <span>🥤</span> 飲料
+          </button>
+          <button 
+            @click="wheelCategory = 'food'"
+            class="px-6 py-2 rounded-lg font-bold transition-all flex items-center gap-2"
+            :class="wheelCategory === 'food' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'"
+          >
+            <span>🍱</span> 食物
+          </button>
+        </div>
+      </div>
+
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         <button 
-          v-for="shop in shops" 
+          v-for="shop in wheelShops" 
           :key="shop.id"
           @click="selectShop(shop)"
           class="p-4 bg-slate-700 hover:bg-blue-600 rounded-xl text-white font-bold transition-all text-center group flex items-center justify-center min-h-[80px]"
         >
           <div class="text-lg">{{ shop.name }}</div>
         </button>
+        
+        <div v-if="wheelShops.length === 0" class="col-span-full text-center py-8 text-slate-500">
+          此分類尚無店家
+        </div>
       </div>
       <button 
         @click="showShopSelector = false"
