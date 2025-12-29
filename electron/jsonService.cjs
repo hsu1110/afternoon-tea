@@ -211,18 +211,31 @@ class JsonService {
     return null;
   }
 
-  // 更新權重 (公平演算法)
+  // 更新權重 (公平演算法 - 分類獨立)
   updateShopWeights(winnerId) {
     const shops = this.read('shops.json');
     if (!shops) return false;
 
+    // Find winner to get category
+    const winnerShop = shops.find(s => s.id === winnerId);
+    if (!winnerShop) return false;
+
+    const winnerCategory = winnerShop.category || 'drink';
+
     let hasChanges = false;
     const updatedShops = shops.map(shop => {
+      // Only update weights for shops in the same category
+      const currentCategory = shop.category || 'drink';
+      
+      if (currentCategory !== winnerCategory) {
+        return shop;
+      }
+
       let newWeight = shop.weight || 1;
       if (shop.id === winnerId) {
         newWeight = 1; // 中獎者重置
       } else {
-        newWeight += 1; // 其他人 +1
+        newWeight += 1; // 同分類其他人 +1
       }
       
       if (newWeight !== shop.weight) {

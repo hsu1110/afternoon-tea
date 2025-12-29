@@ -4,7 +4,7 @@ import ZoomableImageModal from './ZoomableImageModal.vue';
 
 const shops = ref([]);
 const isEditing = ref(false);
-const editingShop = ref({ id: '', name: '', phone: '', weight: 1, category: 'drink' });
+const editingShop = ref({ id: '', name: '', phone: '', note: '', weight: 1, category: 'drink' });
 const selectedImagePath = ref(null);
 const currentMenuImage = ref(null);
 const isMenuModalOpen = ref(false);
@@ -29,7 +29,7 @@ const filteredShops = computed(() => {
 const resetForm = () => {
   isEditing.value = false;
   // Default to current active category for new shops
-  editingShop.value = { id: '', name: '', phone: '', weight: 1, category: activeCategory.value };
+  editingShop.value = { id: '', name: '', phone: '', note: '', weight: 1, category: activeCategory.value };
   selectedImagePath.value = null;
   currentMenuImage.value = null;
 };
@@ -136,6 +136,7 @@ onMounted(() => {
               <div>
                 <h3 class="font-bold text-lg text-white">{{ shop.name }}</h3>
                 <p class="text-slate-400 text-sm">📞 {{ shop.phone }}</p>
+                <p v-if="shop.note" class="text-slate-500 text-xs mt-1">📝 {{ shop.note }}</p>
                 <div class="mt-2 text-xs bg-slate-700 inline-block px-2 py-1 rounded text-slate-300">
                   權重: {{ shop.weight }}
                 </div>
@@ -210,6 +211,16 @@ onMounted(() => {
               type="text" 
               class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
               placeholder="03-xxxx-xxxx"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-400 mb-1">備註 (分店)</label>
+            <input 
+              v-model="editingShop.note"
+              type="text" 
+              class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+              placeholder="例如：竹科店"
             >
           </div>
 
