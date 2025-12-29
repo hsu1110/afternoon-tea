@@ -9,7 +9,13 @@ const showDetails = ref(false);
 const loadHistory = async () => {
   try {
     const history = await window.electronAPI.getHistory();
-    historySessions.value = (history || []).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    historySessions.value = (history || [])
+      .map(session => ({
+        ...session,
+        shopName: session.shopName || '未知店家',
+        orders: session.orders || []
+      }))
+      .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
   } catch (error) {
     console.error('Failed to load history:', error);
   }
