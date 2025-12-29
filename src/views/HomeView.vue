@@ -88,7 +88,6 @@ const confirmSession = async () => {
 
 // 匯出報表
 const handleExport = async (session) => {
-  console.log('handleExport clicked', session);
   if (!window.electronAPI || !window.electronAPI.exportOrders) {
     console.error('electronAPI.exportOrders is missing');
     triggerToast('系統錯誤：無法匯出');
