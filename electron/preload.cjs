@@ -31,4 +31,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),
+  
+  // Update API
+  checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
+  performUpdate: (installerPath) => ipcRenderer.invoke('perform-update', installerPath),
 });

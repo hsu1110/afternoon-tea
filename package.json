@@ -2,6 +2,7 @@
   "name": "afternoon_tea",
   "private": true,
   "version": "1.0.0",
+  "releaseNotes": "1. 自動偵測更新",
   "author": "George",
   "description": "下午茶",
   "type": "module",
@@ -12,7 +13,8 @@
     "preview": "vite preview",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "app:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5174 && npm run electron:dev\"",
-    "electron:build": "rimraf release && vite build && electron-builder"
+    "electron:build": "rimraf release && vite build && electron-builder && node scripts/generate-version.cjs",
+    "version": "node scripts/generate-version.cjs"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",

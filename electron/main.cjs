@@ -308,3 +308,73 @@ ipcMain.on('window-close', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win) win.close();
 });
+
+// --- Update Mechanism (Shared Folder Strategy) ---
+// 邏輯：更新檔位於 dataDir 的上一層目錄
+ipcMain.handle('check-for-update', async () => {
+  try {
+    const config = loadConfig();
+    const dataDir = config.dataDir;
+
+    if (!dataDir) {
+      return { hasUpdate: false, message: '未設定資料路徑，無法搜尋更新' };
+    }
+
+    // 取得上一層目錄
+    const updateDir = path.resolve(dataDir, '..');
+    const versionFile = path.join(updateDir, 'version.json');
+
+    if (!fs.existsSync(versionFile)) {
+      return { hasUpdate: false, message: '找不到版本資訊檔' };
+    }
+
+    let remoteData;
+    try {
+      remoteData = JSON.parse(fs.readFileSync(versionFile, 'utf-8'));
+    } catch (e) {
+      return { hasUpdate: false, message: '版本資訊檔格式錯誤' };
+    }
+    const remoteVersion = remoteData.version;
+    const currentVersion = app.getVersion();
+
+    // 簡單字串比對 (建議格式: 1.0.0)
+    // 如果遠端版本 > 目前版本
+    if (remoteVersion && remoteVersion > currentVersion) {
+      const installerName = remoteData.installerName || `Afternoon Tea Setup ${remoteVersion}.exe`;
+      const installerPath = path.join(updateDir, installerName);
+
+      // 確認安裝檔是否存在
+      if (!fs.existsSync(installerPath)) {
+        return { 
+          hasUpdate: true, 
+          remoteVersion, 
+          error: '偵測到新版本，但找不到安裝檔',
+          installerPath 
+        };
+      }
+
+      return { 
+        hasUpdate: true, 
+        remoteVersion, 
+        installerPath,
+        releaseNotes: remoteData.releaseNotes || ''
+      };
+    }
+    
+    return { hasUpdate: false, message: '目前已是最新版本' };
+    
+  } catch (error) {
+    return { hasUpdate: false, error: error.message };
+  }
+});
+
+ipcMain.handle('perform-update', (event, installerPath) => {
+  const { shell } = require('electron');
+  if (fs.existsSync(installerPath)) {
+    shell.openPath(installerPath);
+    setTimeout(() => app.quit(), 1000); // 1秒後關閉程式讓安裝檔執行
+    return { success: true };
+  } else {
+    return { success: false, message: '找不到安裝檔' };
+  }
+});

@@ -2,19 +2,70 @@
 import { ref, provide, onMounted } from 'vue';
 import ConfirmModal from './components/ConfirmModal.vue';
 import TitleBar from './components/TitleBar.vue';
+import UpdateModal from './components/UpdateModal.vue';
+import { ElMessageBox } from 'element-plus';
 
 const toastMessage = ref('');
 const showToast = ref(false);
 const appVersion = ref('v1.0.0');
 
+// Update Logic State
+const showUpdateModal = ref(false);
+const updateInfo = ref({
+  version: '',
+  releaseNotes: '',
+  installerPath: ''
+});
+
 onMounted(async () => {
   try {
     const ver = await window.electronAPI.getAppVersion();
     appVersion.value = `v${ver}`;
+    
+    // Auto check for update on startup
+    checkUpdate(true);
   } catch (e) {
     console.error('Failed to get app version', e);
   }
 });
+
+const checkUpdate = async (isAutoCheck = false) => {
+  try {
+    const result = await window.electronAPI.checkForUpdate();
+    console.log('Update Check Result:', result);
+
+    if (result.hasUpdate) {
+      updateInfo.value = {
+        version: result.remoteVersion,
+        releaseNotes: result.releaseNotes,
+        installerPath: result.installerPath
+      };
+      showUpdateModal.value = true;
+    } else {
+      if (!isAutoCheck) {
+        if (result.message) {
+          ElMessageBox.alert(result.message, '檢查結果', { customClass: 'dark-mode-dialog' });
+        } else if (result.error) {
+          ElMessageBox.alert(`檢查更新失敗: ${result.error}`, '錯誤', { type: 'error', customClass: 'dark-mode-dialog' });
+        } else {
+          ElMessageBox.alert('目前已是最新版本 🎉', '檢查結果', { type: 'success', customClass: 'dark-mode-dialog' });
+        }
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    console.log('自動檢查更新失敗');
+  }
+};
+
+const handleUpdateConfirm = async (installerPath) => {
+  try {
+    await window.electronAPI.performUpdate(installerPath);
+  } catch (error) {
+    console.error('Update execution failed:', error);
+    ElMessageBox.alert('執行更新失敗，請稍後再試', '錯誤', { type: 'error', customClass: 'dark-mode-dialog' });
+  }
+};
 
 const triggerToast = (msg) => {
   toastMessage.value = msg;
@@ -68,7 +119,7 @@ provide('triggerConfirm', triggerConfirm);
   <div class="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white flex flex-col">
     
     <!-- Custom Title Bar -->
-    <TitleBar class="fixed top-0 left-0 w-full z-50" />
+    <TitleBar ref="titleBarRef" class="fixed top-0 left-0 w-full z-50" />
     
     <!-- Background Effects -->
     <div class="fixed inset-0 z-0 pointer-events-none">
@@ -136,7 +187,16 @@ provide('triggerConfirm', triggerConfirm);
       <div class="p-4">
         <div class="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-white/5">
           <div class="text-xs text-slate-500 mb-1">目前版本</div>
-          <div class="text-sm font-mono text-slate-300">{{ appVersion }}</div>
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-mono text-slate-300">{{ appVersion }}</div>
+            <button 
+              @click="checkUpdate"
+              class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1"
+              title="檢查更新"
+            >
+              <span>🔄</span> 更新
+            </button>
+          </div>
         </div>
       </div>
     </aside>
@@ -173,6 +233,15 @@ provide('triggerConfirm', triggerConfirm);
         @cancel="handleCancel"
       />
     </transition>
+
+    <!-- Update Modal -->
+    <UpdateModal
+      v-model="showUpdateModal"
+      :version="updateInfo.version"
+      :release-notes="updateInfo.releaseNotes"
+      :installer-path="updateInfo.installerPath"
+      @confirm="handleUpdateConfirm"
+    />
 
   </div>
 </template>

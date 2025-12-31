@@ -112,9 +112,24 @@ npm run electron:build
 ### 專案結構
 
 - `electron/`: Electron 主進程 (Main Process)，負責視窗管理、檔案讀寫、IPC 通訊。
+  - `main.cjs`: 應用程式入口點。
+  - `preload.cjs`: 預載入腳本，安全地暴露 API 給渲染進程。
 - `src/`: Vue 3 前端介面 (Renderer Process)。
-  - `views/`: 頁面元件 (HomeView, OrderView...)
-  - `components/`: 重用元件 (Wheel, BaseModal, ZoomableImageModal...)
+  - `views/`: 頁面元件
+    - `HomeView.vue`: 首頁 (轉盤、進行中團購)。
+    - `OrderView.vue`: 點餐頁面 (菜單、下單)。
+    - `AdminView.vue`: 後台管理 (店家管理、成員管理)。
+    - `FinanceView.vue`: 公費管理 (收支記錄)。
+    - `HistoryView.vue`: 歷史紀錄 (查看過去的開團紀錄)。
+  - `components/`: 重用元件
+    - `Wheel.vue`: 轉盤元件。
+    - `OrderForm.vue`: 點餐表單。
+    - `ShopManager.vue`: 店家管理元件。
+    - `MemberManager.vue`: 成員管理元件。
+    - `ZoomableImageModal.vue`: 圖片放大檢視元件。
+    - `CustomDatePicker.vue`: 自訂日期選擇器。
+    - `TitleBar.vue`: 自訂視窗標題列。
+  - `router/`: 路由設定。
 - `_data/`: 開發模式下的預設資料儲存位置。
 
 ## 📄 授權
