@@ -161,20 +161,56 @@ ${hostText}
   });
 };
 
+// 計算總金額 (含自費)
+const calculateTotal = (orders) => {
+  return orders.reduce((sum, order) => sum + (order.price || 0), 0);
+};
+
+// 計算公費金額 (排除自費)
+const calculatePublicTotal = (orders) => {
+  return orders.reduce((sum, order) => {
+    if (order.isSelfPay) return sum;
+    return sum + (order.price || 0);
+  }, 0);
+};
+
+// 計算自費總額
+const calculateSelfPayTotal = (orders) => {
+  return orders.reduce((sum, order) => {
+    if (!order.isSelfPay) return sum;
+    return sum + (order.price || 0);
+  }, 0);
+};
+
+// 手動轉盤
+const handleSpin = () => {
+  if (wheelRef.value) {
+    wheelRef.value.spin();
+  }
+};
+
 // 結帳
 const handleCheckout = async (session) => {
   const total = calculateTotal(session.orders);
+  const publicTotal = calculatePublicTotal(session.orders);
+  const selfPayTotal = calculateSelfPayTotal(session.orders);
+  
+  let message = `確定要結帳 ${session.shopName} 嗎？\n總金額：$${total}`;
+  if (selfPayTotal > 0) {
+    message += `\n(公費支出：$${publicTotal}, 自費代墊：$${selfPayTotal})`;
+  }
   
   const confirmed = await triggerConfirm({
     title: '結帳確認',
-    message: `確定要結帳 ${session.shopName} 嗎？\n總金額：$${total}`,
+    message: message,
     confirmText: '確定結帳',
     type: 'success'
   });
 
   if (confirmed) {
     try {
-      await window.electronAPI.checkoutSession(total, session.shopName, session.id);
+      // 這裡只傳入公費金額，因為自費的不應該從公費扣除
+      await window.electronAPI.checkoutSession(publicTotal, session.shopName, session.id);
       await loadData(); // Reload to remove from list
       triggerToast('結帳完成！已記入帳本');
     } catch (error) {
@@ -201,18 +237,6 @@ const handleCancel = async (session) => {
     } catch (error) {
       console.error('Failed to cancel session:', error);
     }
-  }
-};
-
-// 計算總金額
-const calculateTotal = (orders) => {
-  return orders.reduce((sum, order) => sum + (order.price || 0), 0);
-};
-
-// 手動轉盤
-const handleSpin = () => {
-  if (wheelRef.value) {
-    wheelRef.value.spin();
   }
 };
 
@@ -419,8 +443,11 @@ onMounted(() => {
           <div class="relative z-10 bg-slate-900/50 rounded-xl p-4 mb-6 max-h-48 overflow-y-auto custom-scrollbar">
             <ul class="space-y-2">
               <li v-for="order in session.orders" :key="order.id" class="flex justify-between text-sm text-slate-300 border-b border-slate-700/50 pb-2 last:border-0 last:pb-0">
-                <span>{{ order.name }} - {{ order.item }}</span>
-                <span class="font-mono">${{ order.price }}</span>
+                <span>
+                  {{ order.name }} - {{ order.item }}
+                  <span v-if="order.isSelfPay" class="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">自費</span>
+                </span>
+                <span class="font-mono" :class="order.isSelfPay ? 'text-slate-500 line-through' : ''">${{ order.price }}</span>
               </li>
               <li v-if="session.orders.length === 0" class="text-center text-slate-500 py-4">
                 尚無訂單
@@ -430,9 +457,14 @@ onMounted(() => {
 
           <!-- Footer / Actions -->
           <div class="relative z-10 flex items-center justify-between pt-4 border-t border-slate-700">
-            <div class="text-xl font-bold text-green-400">
-              <span class="text-xs text-slate-500 font-normal mr-1">總計</span>
-              ${{ calculateTotal(session.orders) }}
+            <div class="text-xl font-bold text-green-400 flex flex-col items-start">
+              <div>
+                <span class="text-xs text-slate-500 font-normal mr-1">總計</span>
+                ${{ calculateTotal(session.orders) }}
+              </div>
+              <div v-if="calculateSelfPayTotal(session.orders) > 0" class="text-xs text-slate-400 font-normal">
+                (公費 ${{ calculatePublicTotal(session.orders) }})
+              </div>
             </div>
             
             <div class="flex gap-2">

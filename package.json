@@ -2,7 +2,7 @@
   "name": "afternoon_tea",
   "private": true,
   "version": "1.0.1",
-  "releaseNotes": "1. 自動偵測更新",
+  "releaseNotes": "1. 自動偵測更新/n 2. 修正圖片放大按鈕問題/n 3. 新增自費功能",
   "author": "George",
   "description": "下午茶",
   "type": "module",

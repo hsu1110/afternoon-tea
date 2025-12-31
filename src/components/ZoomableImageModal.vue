@@ -164,21 +164,12 @@ const close = () => {
 
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" class="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex" @click.self="close">
+    <div v-if="isOpen" class="modal-overlay" @click.self="close">
       <!-- Image Area -->
-      <div class="relative flex-1 h-full overflow-hidden" @click.self="close">
-        <button 
-          @click="close"
-          class="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all z-50"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        
+      <div class="image-wrapper" @click.self="close">
         <div 
           ref="imageContainer"
-          class="relative w-full h-full overflow-auto select-none flex"
+          class="image-container"
           :class="{'cursor-grab': zoomLevel > 1 && !isDragging, 'cursor-grabbing': zoomLevel > 1 && isDragging}"
           @mousedown="onMouseDown"
           @mousemove="onMouseMove"
@@ -190,7 +181,7 @@ const close = () => {
           <img 
             ref="imageRef"
             :src="imageSrc" 
-            class="transition-transform duration-100 shadow-2xl rounded-lg m-auto flex-shrink-0"
+            class="zoomable-image"
             :class="zoomLevel > 1 ? 'cursor-zoom-out' : 'max-w-full max-h-full object-contain cursor-zoom-in'"
             :style="imageStyle"
             alt="Menu Full Size"
@@ -198,12 +189,47 @@ const close = () => {
             @dragstart.prevent
           >
         </div>
+
+        <button 
+          @click="close"
+          class="close-btn"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <!-- Sidebar Area -->
-      <div v-if="$slots.sidebar" class="w-[400px] bg-slate-900 border-l border-slate-700 h-full overflow-y-auto p-6 shadow-2xl z-40" @click.stop>
+      <div v-if="$slots.sidebar" class="sidebar-panel" @click.stop>
         <slot name="sidebar"></slot>
       </div>
     </div>
   </Teleport>
 </template>
+
+<style scoped>
+.modal-overlay {
+  @apply fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex;
+}
+
+.image-wrapper {
+  @apply relative flex-1 h-full overflow-hidden;
+}
+
+.image-container {
+  @apply relative w-full h-full overflow-auto select-none flex;
+}
+
+.zoomable-image {
+  @apply transition-transform duration-100 shadow-2xl rounded-lg m-auto flex-shrink-0;
+}
+
+.close-btn {
+  @apply absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 transition-all z-[100] backdrop-blur-sm border border-white/10 shadow-lg;
+}
+
+.sidebar-panel {
+  @apply w-[400px] bg-slate-900 border-l border-slate-700 h-full overflow-y-auto p-6 shadow-2xl z-40;
+}
+</style>

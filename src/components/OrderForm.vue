@@ -26,6 +26,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  isSelfPay: {
+    type: Boolean,
+    default: false
+  },
   isSubmitting: {
     type: Boolean,
     default: false
@@ -46,6 +50,7 @@ const emit = defineEmits([
   'update:item',
   'update:price',
   'update:note',
+  'update:isSelfPay',
   'submit',
   'cancel',
   'quickFill'
@@ -74,6 +79,11 @@ const localPrice = computed({
 const localNote = computed({
   get: () => props.note,
   set: (val) => emit('update:note', val)
+});
+
+const localIsSelfPay = computed({
+  get: () => props.isSelfPay,
+  set: (val) => emit('update:isSelfPay', val)
 });
 
 const handleMemberChange = () => {
@@ -150,6 +160,18 @@ const handleManualNameBlur = () => {
           class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
           placeholder="例如：微糖少冰、不要香菜"
         >
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input 
+          type="checkbox" 
+          id="isSelfPay" 
+          v-model="localIsSelfPay"
+          class="w-5 h-5 rounded border-slate-600 text-blue-600 focus:ring-blue-500 bg-slate-900/50"
+        >
+        <label for="isSelfPay" class="text-slate-300 select-none cursor-pointer">
+          💰 自費 (不計入公費)
+        </label>
       </div>
 
       <div class="flex gap-3">

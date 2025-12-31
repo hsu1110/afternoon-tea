@@ -368,12 +368,24 @@ class JsonService {
       '品項': order.item,
       '價格': order.price,
       '備註': order.note || '',
+      '自費': order.isSelfPay ? '是' : '',
       '時間': new Date(order.timestamp).toLocaleString()
     }));
 
-    // 加入總計列
+    // 計算總計
     const total = orders.reduce((sum, order) => sum + (order.price || 0), 0);
-    exportData.push({ '姓名': '總計', '品項': `${orders.length} 項`, '價格': total, '備註': '', '時間': '' });
+    const selfPayTotal = orders.reduce((sum, order) => order.isSelfPay ? sum + (order.price || 0) : sum, 0);
+    const publicTotal = total - selfPayTotal;
+
+    // 加入總計列
+    exportData.push({ 
+      '姓名': '總計', 
+      '品項': `${orders.length} 項`, 
+      '價格': total, 
+      '備註': `公費:${publicTotal}, 自費:${selfPayTotal}`, 
+      '自費': '',
+      '時間': '' 
+    });
 
     // 建立工作表
     const ws = XLSX.utils.json_to_sheet(exportData);

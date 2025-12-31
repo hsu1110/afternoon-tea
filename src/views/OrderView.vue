@@ -16,6 +16,7 @@ const currentUser = computed(() => selectedMember.value ? selectedMember.value.n
 const currentItem = ref('');
 const currentPrice = ref('');
 const currentNote = ref('');
+const isSelfPay = ref(false);
 const isSubmitting = ref(false);
 const isMenuModalOpen = ref(false);
 const editingOrderId = ref(null);
@@ -115,6 +116,7 @@ const quickFillLastOrder = async () => {
       currentItem.value = lastOrder.item;
       currentPrice.value = lastOrder.price;
       currentNote.value = lastOrder.note || '';
+      isSelfPay.value = lastOrder.isSelfPay || false;
       triggerToast('已帶入上次點餐紀錄');
     }
   } catch (error) {
@@ -140,7 +142,8 @@ const submitOrder = async () => {
       name: currentUser.value,
       item: currentItem.value,
       price: Number(currentPrice.value),
-      note: currentNote.value
+      note: currentNote.value,
+      isSelfPay: isSelfPay.value
     };
 
     if (editingOrderId.value) {
@@ -176,6 +179,7 @@ const editOrder = (order) => {
   currentItem.value = order.item;
   currentPrice.value = order.price;
   currentNote.value = order.note || '';
+  isSelfPay.value = order.isSelfPay || false;
   
   // Try to match user
   const member = members.value.find(m => m.name === order.name);
@@ -193,6 +197,7 @@ const cancelEdit = () => {
   currentItem.value = '';
   currentPrice.value = '';
   currentNote.value = '';
+  isSelfPay.value = false;
   // Don't reset user, keep current selection
 };
 
@@ -298,6 +303,7 @@ onMounted(() => {
             v-model:item="currentItem"
             v-model:price="currentPrice"
             v-model:note="currentNote"
+            v-model:isSelfPay="isSelfPay"
             :is-submitting="isSubmitting"
             :is-locked="isLocked"
             :editing-order-id="editingOrderId"
@@ -318,11 +324,14 @@ onMounted(() => {
                 class="bg-slate-900/80 p-3 rounded-lg border border-slate-700/50 flex justify-between items-center group hover:border-slate-600 transition-colors"
               >
                 <div>
-                  <div class="font-bold text-white text-sm">{{ order.name }}</div>
+                  <div class="font-bold text-white text-sm flex items-center gap-2">
+                    {{ order.name }}
+                    <span v-if="order.isSelfPay" class="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/30">自費</span>
+                  </div>
                   <div class="text-xs text-slate-400">{{ order.item }} <span v-if="order.note" class="text-slate-500">({{ order.note }})</span></div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="font-mono font-bold text-green-400 text-sm mr-2">${{ order.price }}</span>
+                  <span class="font-mono font-bold text-sm mr-2" :class="order.isSelfPay ? 'text-slate-500 line-through' : 'text-green-400'">${{ order.price }}</span>
                   <button 
                     @click="editOrder(order)"
                     :disabled="isLocked"
@@ -365,6 +374,7 @@ onMounted(() => {
           v-model:item="currentItem"
           v-model:price="currentPrice"
           v-model:note="currentNote"
+          v-model:isSelfPay="isSelfPay"
           :is-submitting="isSubmitting"
           :is-locked="isLocked"
           :editing-order-id="editingOrderId"

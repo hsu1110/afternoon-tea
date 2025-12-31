@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, inject } from 'vue';
+import BaseModal from '../components/BaseModal.vue';
 
 const funds = ref([]);
 const triggerToast = inject('triggerToast');
@@ -236,32 +237,66 @@ onMounted(() => {
     </div>
 
     <!-- Edit Modal -->
-    <el-dialog
-      v-model="showEditModal"
-      title="編輯交易紀錄"
-      width="400px"
-      class="rounded-2xl"
-      :append-to-body="true"
+    <!-- Edit Modal -->
+    <BaseModal 
+      :is-open="showEditModal" 
+      max-width="max-w-md" 
+      custom-class="p-6" 
+      @close="showEditModal = false"
     >
-      <el-form :model="editForm" label-position="top">
-        <el-form-item label="類型">
-          <el-radio-group v-model="editForm.type">
-            <el-radio-button label="income">收入</el-radio-button>
-            <el-radio-button label="expense">支出</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        
-        <el-form-item label="金額">
-          <el-input v-model.number="editForm.amount" type="number" placeholder="請輸入金額">
-            <template #prefix>$</template>
-          </el-input>
-        </el-form-item>
-        
-        <el-form-item label="備註">
-          <el-input v-model="editForm.note" placeholder="請輸入備註" />
-        </el-form-item>
+      <h3 class="text-xl font-bold text-white mb-6 text-center">編輯交易紀錄</h3>
+      
+      <form @submit.prevent="saveEdit" class="space-y-4">
+        <!-- Type Selection -->
+        <div class="flex bg-slate-900/50 p-1 rounded-lg border border-slate-600">
+          <button 
+            type="button"
+            @click="editForm.type = 'income'"
+            class="flex-1 py-2 rounded-md text-sm font-bold transition-all"
+            :class="editForm.type === 'income' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'"
+          >
+            收入
+          </button>
+          <button 
+            type="button"
+            @click="editForm.type = 'expense'"
+            class="flex-1 py-2 rounded-md text-sm font-bold transition-all"
+            :class="editForm.type === 'expense' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'"
+          >
+            支出
+          </button>
+        </div>
 
-        <el-form-item label="日期">
+        <!-- Amount -->
+        <div>
+          <label class="block text-sm font-medium text-slate-400 mb-1">金額</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-slate-500">$</span>
+            <input 
+              v-model="editForm.amount"
+              type="number" 
+              required
+              class="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-7 pr-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+              placeholder="0"
+            >
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div>
+          <label class="block text-sm font-medium text-slate-400 mb-1">備註</label>
+          <input 
+            v-model="editForm.note"
+            type="text" 
+            required
+            class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+            placeholder="請輸入備註"
+          >
+        </div>
+
+        <!-- Date -->
+        <div>
+          <label class="block text-sm font-medium text-slate-400 mb-1">日期</label>
           <el-date-picker
             v-model="editForm.date"
             type="date"
@@ -269,16 +304,28 @@ onMounted(() => {
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             class="w-full"
+            :teleported="false"
           />
-        </el-form-item>
-      </el-form>
-      
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showEditModal = false">取消</el-button>
-          <el-button type="primary" @click="saveEdit">儲存</el-button>
-        </span>
-      </template>
-    </el-dialog>
+        </div>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-2 gap-3 mt-6">
+          <button 
+            type="button"
+            @click="showEditModal = false"
+            class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold transition-colors"
+          >
+            取消
+          </button>
+          <button 
+            type="submit"
+            class="px-4 py-2 rounded-xl text-white font-bold shadow-lg transition-all transform hover:-translate-y-0.5"
+            :class="editForm.type === 'income' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-500/20'"
+          >
+            儲存變更
+          </button>
+        </div>
+      </form>
+    </BaseModal>
   </div>
 </template>

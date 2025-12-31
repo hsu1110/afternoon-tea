@@ -32,7 +32,10 @@ const formatDate = (isoString) => {
 };
 
 const calculateTotal = (orders) => {
-  return orders.reduce((sum, order) => sum + (order.price || 0), 0);
+  return orders.reduce((sum, order) => {
+    if (order.isSelfPay) return sum;
+    return sum + (order.price || 0);
+  }, 0);
 };
 
 onMounted(() => {
@@ -130,13 +133,16 @@ onMounted(() => {
             class="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg"
           >
             <div>
-              <div class="font-bold text-white">{{ order.name }}</div>
+              <div class="font-bold text-white flex items-center gap-2">
+                {{ order.name }}
+                <span v-if="order.isSelfPay" class="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/30">自費</span>
+              </div>
               <div class="text-sm text-slate-400">
                 {{ order.item }}
                 <span v-if="order.note" class="text-slate-500 ml-1">({{ order.note }})</span>
               </div>
             </div>
-            <div class="font-mono font-bold text-slate-300">
+            <div class="font-mono font-bold" :class="order.isSelfPay ? 'text-slate-500 line-through' : 'text-slate-300'">
               ${{ order.price }}
             </div>
           </div>

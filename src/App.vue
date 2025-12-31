@@ -118,82 +118,82 @@ provide('triggerConfirm', triggerConfirm);
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white flex flex-col">
+  <div class="app-container">
     
     <!-- Custom Title Bar -->
     <TitleBar ref="titleBarRef" class="fixed top-0 left-0 w-full z-50" />
     
     <!-- Background Effects -->
-    <div class="fixed inset-0 z-0 pointer-events-none">
-      <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse-slow"></div>
-      <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse-slow" style="animation-delay: 2s;"></div>
+    <div class="bg-effect-container">
+      <div class="bg-effect bg-effect-purple"></div>
+      <div class="bg-effect bg-effect-blue" style="animation-delay: 2s;"></div>
     </div>
 
     <!-- Sidebar -->
-    <aside class="fixed top-10 left-0 h-[calc(100%-2.5rem)] w-64 bg-slate-800/40 backdrop-blur-xl border-r border-white/5 flex flex-col z-40 transition-all duration-300">
-      <div class="p-8">
-        <h1 class="text-2xl font-bold flex items-center gap-3">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1 class="logo-title">
           <span class="text-3xl">🎡</span>
-          <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">下午茶</span>
+          <span class="logo-text">下午茶</span>
         </h1>
-        <p class="text-xs text-slate-500 mt-2 tracking-wider uppercase">Afternoon Tea</p>
+        <p class="logo-subtitle">Afternoon Tea</p>
       </div>
 
-      <nav class="flex-1 px-4 space-y-2">
+      <nav class="sidebar-nav">
         <router-link 
           to="/" 
-          class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group"
-          active-class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10"
+          class="nav-link group"
+          active-class="nav-link-active"
         >
-          <span class="text-xl group-hover:scale-110 transition-transform">🏠</span>
+          <span class="nav-icon group-hover:scale-110">🏠</span>
           <span class="font-medium">首頁</span>
         </router-link>
         
         <router-link 
           to="/order" 
-          class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group"
-          active-class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10"
+          class="nav-link group"
+          active-class="nav-link-active"
         >
-          <span class="text-xl group-hover:scale-110 transition-transform">📝</span>
+          <span class="nav-icon group-hover:scale-110">📝</span>
           <span class="font-medium">點餐</span>
         </router-link>
         
         <router-link 
           to="/history" 
-          class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group"
-          active-class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10"
+          class="nav-link group"
+          active-class="nav-link-active"
         >
-          <span class="text-xl group-hover:scale-110 transition-transform">📜</span>
+          <span class="nav-icon group-hover:scale-110">📜</span>
           <span class="font-medium">紀錄</span>
         </router-link>
 
         <router-link 
           to="/finance" 
-          class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group"
-          active-class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10"
+          class="nav-link group"
+          active-class="nav-link-active"
         >
-          <span class="text-xl group-hover:scale-110 transition-transform">💰</span>
+          <span class="nav-icon group-hover:scale-110">💰</span>
           <span class="font-medium">財務</span>
         </router-link>
         
         <router-link 
           to="/admin" 
-          class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group"
-          active-class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10"
+          class="nav-link group"
+          active-class="nav-link-active"
         >
-          <span class="text-xl group-hover:scale-110 transition-transform">⚙️</span>
+          <span class="nav-icon group-hover:scale-110">⚙️</span>
           <span class="font-medium">管理</span>
         </router-link>
       </nav>
 
       <div class="p-4">
-        <div class="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-white/5">
+        <div class="version-card">
           <div class="text-xs text-slate-500 mb-1">目前版本</div>
           <div class="flex items-center justify-between">
             <div class="text-sm font-mono text-slate-300">{{ appVersion }}</div>
             <button 
               @click="() => checkUpdate(false)"
-              class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1"
+              class="update-btn"
               title="檢查更新"
             >
               <span>🔄</span> 更新
@@ -204,8 +204,8 @@ provide('triggerConfirm', triggerConfirm);
     </aside>
 
     <!-- Main Content -->
-    <main class="ml-64 mt-10 relative z-10 min-h-[calc(100vh-2.5rem)]">
-      <div class="p-8 md:p-12 max-w-7xl mx-auto">
+    <main class="main-content">
+      <div class="content-wrapper">
         <router-view v-slot="{ Component }">
           <transition name="fade-slide" mode="out-in">
             <component :is="Component" />
@@ -216,7 +216,7 @@ provide('triggerConfirm', triggerConfirm);
 
     <!-- Global Toast Notification -->
     <transition name="fade">
-      <div v-if="showToast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl border border-slate-600 flex items-center gap-3 z-50">
+      <div v-if="showToast" class="toast-notification">
         <span class="text-xl">🔔</span>
         <span class="font-medium">{{ toastMessage }}</span>
       </div>
@@ -248,6 +248,75 @@ provide('triggerConfirm', triggerConfirm);
 
   </div>
 </template>
+
+<style scoped>
+.app-container {
+  @apply min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white flex flex-col;
+}
+
+/* Background Effects */
+.bg-effect-container {
+  @apply fixed inset-0 z-0 pointer-events-none;
+}
+.bg-effect {
+  @apply absolute w-[40%] h-[40%] rounded-full blur-[120px];
+  animation: pulse-slow 8s infinite ease-in-out;
+}
+.bg-effect-purple {
+  @apply top-[-10%] left-[-10%] bg-purple-600/20;
+}
+.bg-effect-blue {
+  @apply bottom-[-10%] right-[-10%] bg-blue-600/20;
+}
+
+/* Sidebar */
+.sidebar {
+  @apply fixed top-10 left-0 h-[calc(100%-2.5rem)] w-64 bg-slate-800/40 backdrop-blur-xl border-r border-white/5 flex flex-col z-40 transition-all duration-300;
+}
+.sidebar-header {
+  @apply p-8;
+}
+.logo-title {
+  @apply text-2xl font-bold flex items-center gap-3;
+}
+.logo-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400;
+}
+.logo-subtitle {
+  @apply text-xs text-slate-500 mt-2 tracking-wider uppercase;
+}
+.sidebar-nav {
+  @apply flex-1 px-4 space-y-2;
+}
+.nav-link {
+  @apply flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all;
+}
+.nav-link-active {
+  @apply bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10;
+}
+.nav-icon {
+  @apply text-xl transition-transform;
+}
+.version-card {
+  @apply bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-white/5;
+}
+.update-btn {
+  @apply text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1;
+}
+
+/* Main Content */
+.main-content {
+  @apply ml-64 mt-10 relative z-10 min-h-[calc(100vh-2.5rem)];
+}
+.content-wrapper {
+  @apply p-8 md:p-12 max-w-7xl mx-auto;
+}
+
+/* Toast */
+.toast-notification {
+  @apply fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl border border-slate-600 flex items-center gap-3 z-50;
+}
+</style>
 
 <style>
 /* Global Scrollbar */
@@ -298,8 +367,5 @@ provide('triggerConfirm', triggerConfirm);
 @keyframes pulse-slow {
   0%, 100% { opacity: 0.5; transform: scale(1); }
   50% { opacity: 0.8; transform: scale(1.1); }
-}
-.animate-pulse-slow {
-  animation: pulse-slow 8s infinite ease-in-out;
 }
 </style>
