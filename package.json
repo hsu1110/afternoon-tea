@@ -1,7 +1,7 @@
 {
   "name": "afternoon_tea",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "releaseNotes": "1. 自動偵測更新",
   "author": "George",
   "description": "下午茶",

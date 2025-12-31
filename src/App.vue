@@ -38,18 +38,20 @@ const checkUpdate = async (isAutoCheck = false) => {
       updateInfo.value = {
         version: result.remoteVersion,
         releaseNotes: result.releaseNotes,
-        installerPath: result.installerPath
+        installerPath: result.installerPath,
+        isLatest: false
       };
       showUpdateModal.value = true;
     } else {
       if (!isAutoCheck) {
-        if (result.message) {
-          ElMessageBox.alert(result.message, '檢查結果', { customClass: 'dark-mode-dialog' });
-        } else if (result.error) {
-          ElMessageBox.alert(`檢查更新失敗: ${result.error}`, '錯誤', { type: 'error', customClass: 'dark-mode-dialog' });
-        } else {
-          ElMessageBox.alert('目前已是最新版本 🎉', '檢查結果', { type: 'success', customClass: 'dark-mode-dialog' });
-        }
+        // Manual check: Show modal even if latest
+        updateInfo.value = {
+          version: appVersion.value.replace('v', ''), // Use current version
+          releaseNotes: '目前已是最新版本，無需更新。',
+          installerPath: '',
+          isLatest: true
+        };
+        showUpdateModal.value = true;
       }
     }
   } catch (error) {
@@ -190,7 +192,7 @@ provide('triggerConfirm', triggerConfirm);
           <div class="flex items-center justify-between">
             <div class="text-sm font-mono text-slate-300">{{ appVersion }}</div>
             <button 
-              @click="checkUpdate"
+              @click="() => checkUpdate(false)"
               class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1"
               title="檢查更新"
             >
@@ -240,6 +242,7 @@ provide('triggerConfirm', triggerConfirm);
       :version="updateInfo.version"
       :release-notes="updateInfo.releaseNotes"
       :installer-path="updateInfo.installerPath"
+      :is-latest="updateInfo.isLatest"
       @confirm="handleUpdateConfirm"
     />
 
