@@ -1,8 +1,8 @@
 {
   "name": "afternoon_tea",
   "private": true,
-  "version": "1.0.1",
-  "releaseNotes": "1. 自動偵測更新/n 2. 修正圖片放大按鈕問題/n 3. 新增自費功能",
+  "version": "1.0.2",
+  "releaseNotes": "1. 複製文字不會顯示日期並移除負責人",
   "author": "George",
   "description": "下午茶",
   "type": "module",
@@ -18,9 +18,6 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
-    "element-plus": "^2.12.0",
-    "vue": "^3.5.24",
-    "vue-router": "^4.6.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -30,10 +27,13 @@
     "cross-env": "^10.1.0",
     "electron": "^39.2.7",
     "electron-builder": "^26.0.12",
+    "element-plus": "^2.12.0",
     "postcss": "^8.5.6",
     "rimraf": "^6.1.2",
     "tailwindcss": "^3.4.17",
     "vite": "^7.2.4",
+    "vue": "^3.5.24",
+    "vue-router": "^4.6.4",
     "wait-on": "^9.0.3"
   },
   "build": {

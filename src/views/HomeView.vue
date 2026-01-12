@@ -145,12 +145,10 @@ const confirmEditDeadline = async () => {
 
 // 複製訂購連結文字
 const copyGroupBuyText = (session) => {
-  const deadlineTime = session.deadline ? new Date(session.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '無';
-  const hostText = session.hostName ? `負責人：${session.hostName}` : '';
+  const deadlineTime = session.deadline ? new Date(session.deadline).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '無';
   const text = `
 下午茶開團囉！🎉
 店家：${session.shopName}
-${hostText}
 截止時間：${deadlineTime}
 
 請大家盡快點餐喔！
