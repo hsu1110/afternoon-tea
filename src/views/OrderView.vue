@@ -31,10 +31,19 @@ const timeLeft = computed(() => {
   const diff = deadline - now;
   
   if (diff <= 0) return '已截止';
-  
-  const minutes = Math.floor(diff / 60000);
+ 
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
   const seconds = Math.floor((diff % 60000) / 1000);
-  return `${minutes}分${seconds}秒`;
+  let result = '';
+  if (days > 0) {
+    result += `${days}天${hours}時`;
+  } else if (hours > 0) {
+    result += `${hours}時`;
+  }
+  result += `${minutes}分${seconds}秒`;
+  return result;
 });
 
 const isLocked = computed(() => {

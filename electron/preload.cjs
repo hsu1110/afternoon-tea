@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getMembers: () => ipcRenderer.invoke('get-members'),
   saveMember: (member) => ipcRenderer.invoke('save-member', member),
   deleteMember: (id) => ipcRenderer.invoke('delete-member', id),
-  startSession: (shop, deadline, host) => ipcRenderer.invoke('start-session', { shop, deadline, host }),
+  startSession: (shop, deadline, host, teaTime) => ipcRenderer.invoke('start-session', { shop, deadline, host, teaTime }),
   updateWeights: (winnerId) => ipcRenderer.invoke('update-weights', winnerId),
   submitOrder: (order) => ipcRenderer.invoke('submit-order', order),
   deleteOrder: (orderId) => ipcRenderer.invoke('delete-order', orderId),

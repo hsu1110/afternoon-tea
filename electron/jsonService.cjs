@@ -94,14 +94,14 @@ class JsonService {
   }
 
   // 開啟新團
-  // 開啟新團
-  startSession(shop, deadline = null, host = null) {
+  startSession(shop, deadline = null, host = null, teaTime = null) {
     const data = this.getOrders();
     const newSession = {
       id: crypto.randomUUID(),
       shopId: shop.id,
       shopName: shop.name,
       deadline: deadline,
+      teaTime: teaTime,
       hostId: host ? host.id : null,
       hostName: host ? host.name : null,
       orders: [],

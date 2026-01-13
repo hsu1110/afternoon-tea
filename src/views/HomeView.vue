@@ -16,14 +16,16 @@ const wheelRef = ref(null);
 const selectedShop = ref(null);
 const showResult = ref(false);
 const deadline = ref(null);
+const teaTime = ref(null);
 const selectedHost = ref(null);
 const wheelCategory = ref('drink'); // 'drink' or 'food'
 
 // UX Improvements State
 const showShopSelector = ref(false);
-const showEditDeadlineModal = ref(false);
+const showEditModal = ref(false);
 const editingSession = ref(null);
-const editingDeadline = ref(null);
+const editingTime = ref(null);
+const editType = ref('deadline'); // 'deadline' or 'teaTime'
 
 // 載入資料
 const loadData = async (isInitial = false) => {
@@ -54,6 +56,11 @@ const onSpinEnd = (shop) => {
   const now = new Date();
   now.setMinutes(now.getMinutes() + 30);
   deadline.value = now;
+
+  // Default teaTime: +60 mins
+  const teaTimeDate = new Date();
+  teaTimeDate.setMinutes(teaTimeDate.getMinutes() + 60);
+  teaTime.value = teaTimeDate;
   selectedHost.value = null; // Reset host
   
   showResult.value = true;
@@ -66,9 +73,10 @@ const confirmSession = async () => {
   try {
     const shopData = JSON.parse(JSON.stringify(selectedShop.value));
     const deadlineISO = deadline.value ? deadline.value.toISOString() : null;
+    const teaTimeISO = teaTime.value ? teaTime.value.toISOString() : null;
     const hostData = selectedHost.value ? JSON.parse(JSON.stringify(selectedHost.value)) : null;
     
-    const newSession = await window.electronAPI.startSession(shopData, deadlineISO, hostData);
+    const newSession = await window.electronAPI.startSession(shopData, deadlineISO, hostData, teaTimeISO);
     await window.electronAPI.updateWeights(shopData.id);
     
     activeSessions.value.push(newSession);
@@ -117,28 +125,42 @@ const selectShop = (shop) => {
   onSpinEnd(shop);
 };
 
-// 開啟修改截止時間 Modal
-const openEditDeadline = (session) => {
+// 開啟修改時間 Modal
+const openEdit = (session, type) => {
   editingSession.value = session;
-  editingDeadline.value = session.deadline ? new Date(session.deadline) : new Date();
-  showEditDeadlineModal.value = true;
+  editType.value = type;
+  
+  if (type === 'deadline') {
+    editingTime.value = session.deadline ? new Date(session.deadline) : new Date();
+  } else {
+    editingTime.value = session.teaTime ? new Date(session.teaTime) : new Date();
+  }
+  
+  showEditModal.value = true;
 };
 
-// 確認修改截止時間
-const confirmEditDeadline = async () => {
-  if (!editingSession.value || !editingDeadline.value) return;
+// 確認修改時間
+const confirmEdit = async () => {
+  if (!editingSession.value || !editingTime.value) return;
   
   try {
-    await window.electronAPI.updateSession({
-      id: editingSession.value.id,
-      deadline: editingDeadline.value.toISOString()
-    });
+    const updates = {
+      id: editingSession.value.id
+    };
+    
+    if (editType.value === 'deadline') {
+      updates.deadline = editingTime.value.toISOString();
+    } else {
+      updates.teaTime = editingTime.value.toISOString();
+    }
+    
+    await window.electronAPI.updateSession(updates);
     
     await loadData();
-    showEditDeadlineModal.value = false;
-    triggerToast('截止時間已更新');
+    showEditModal.value = false;
+    triggerToast('時間已更新');
   } catch (error) {
-    console.error('Update deadline error:', error);
+    console.error('Update time error:', error);
     triggerToast('更新失敗');
   }
 };
@@ -146,9 +168,12 @@ const confirmEditDeadline = async () => {
 // 複製訂購連結文字
 const copyGroupBuyText = (session) => {
   const deadlineTime = session.deadline ? new Date(session.deadline).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '無';
+  const teaTimeText = session.teaTime ? new Date(session.teaTime).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '無';
+  const hostText = session.hostName ? `負責人：${session.hostName}` : '';
   const text = `
-下午茶開團囉！🎉
+${teaTimeText}下午茶！🎉
 店家：${session.shopName}
+${hostText}
 截止時間：${deadlineTime}
 
 請大家盡快點餐喔！
@@ -347,7 +372,20 @@ onMounted(() => {
               <div class="flex items-center gap-2 mb-2 text-slate-300">
                 <span>📞 {{ selectedShop?.phone || '無電話' }}</span>
               </div>
-              
+
+              <!-- Tea Time Input -->
+              <div class="mb-6">
+                <label class="block text-sm text-slate-400 mb-2">🍰 預計開吃</label>
+                <el-date-picker
+                  v-model="teaTime"
+                  type="date"
+                  placeholder="選擇日期時間"
+                  format="YYYY-MM-DD"
+                  class="w-full"
+                  :teleported="false"
+                />
+              </div>
+
               <!-- Deadline Input -->
               <div class="mb-6">
                 <label class="block text-sm text-slate-400 mb-2">⏱️ 截止時間</label>
@@ -417,18 +455,34 @@ onMounted(() => {
           <div class="relative z-10 mb-6">
             <div class="flex justify-between items-start">
               <div>
-                <h2 class="text-2xl font-bold text-white mb-1">{{ session.shopName }}</h2>
-                <div class="flex items-center gap-2 text-sm text-slate-400">
-                  <span v-if="session.hostName" class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-xs">👑 {{ session.hostName }}</span>
-                  <span>🕒 截止：{{ session.deadline ? new Date(session.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '無' }}</span>
-                  <button 
-                    @click="openEditDeadline(session)"
-                    class="ml-2 p-1 text-slate-500 hover:text-blue-400 transition-colors"
-                    title="修改時間"
-                  >
-                    ✏️
-                  </button>
-                  <span v-if="session.deadline && new Date() > new Date(session.deadline)" class="text-red-400 font-bold ml-2">(已截止)</span>
+                <div class="flex items-center gap-3 mb-2 flex-wrap">
+                  <h2 class="text-2xl font-bold text-white">{{ session.shopName }}</h2>
+                  <span v-if="session.hostName" class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-xs whitespace-nowrap">👑 {{ session.hostName }}</span>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-400">
+                  <div class="flex items-center gap-1">
+                    <span class="whitespace-nowrap">🍰 下午茶：{{ session.teaTime ? new Date(session.teaTime).toLocaleDateString([], { month: '2-digit', day: '2-digit' }) : '無' }}</span>
+                    <button 
+                      @click="openEdit(session, 'teaTime')"
+                      class="p-1 text-slate-500 hover:text-blue-400 transition-colors"
+                      title="修改下午茶時間"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+
+                  <div class="flex items-center gap-1 whitespace-nowrap">
+                    <span>🕒 截止時間：{{ session.deadline ? new Date(session.deadline).toLocaleTimeString([], { month: '2-digit', day: '2-digit',hour: '2-digit', minute: '2-digit' }) : '無' }}</span>
+                    <button 
+                      @click="openEdit(session, 'deadline')"
+                      class="ml-1 p-1 text-slate-500 hover:text-blue-400 transition-colors"
+                      title="修改截止時間"
+                    >
+                      ✏️
+                    </button>
+                    <span v-if="session.deadline && new Date() > new Date(session.deadline)" class="text-red-400 font-bold ml-2">(已截止)</span>
+                  </div>
                 </div>
               </div>
               <div class="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-sm font-bold">
@@ -549,30 +603,33 @@ onMounted(() => {
       </button>
     </BaseModal>
 
-    <!-- Edit Deadline Modal -->
-    <!-- Edit Deadline Modal -->
-    <BaseModal :is-open="showEditDeadlineModal" max-width="max-w-md" custom-class="p-6" @close="showEditDeadlineModal = false">
-      <h3 class="text-xl font-bold text-white mb-4 text-center">修改截止時間</h3>
+    <!-- Edit Time Modal -->
+    <BaseModal :is-open="showEditModal" max-width="max-w-md" custom-class="p-6" @close="showEditModal = false">
+      <h3 class="text-xl font-bold text-white mb-4 text-center">
+        {{ editType === 'deadline' ? '修改截止時間' : '修改下午茶時間' }}
+      </h3>
       <div class="mb-6">
-        <label class="block text-sm text-slate-400 mb-2">新的截止時間</label>
+        <label class="block text-sm text-slate-400 mb-2">
+          {{ editType === 'deadline' ? '新的截止時間' : '新的下午茶時間' }}
+        </label>
         <el-date-picker
-          v-model="editingDeadline"
-          type="datetime"
+          v-model="editingTime"
+          :type="editType === 'deadline' ? 'datetime' : 'date'"
           placeholder="選擇日期時間"
-          format="YYYY-MM-DD HH:mm"
+          :format="editType === 'deadline' ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD'"
           class="w-full"
           :teleported="false"
         />
       </div>
       <div class="grid grid-cols-2 gap-3">
         <button 
-          @click="showEditDeadlineModal = false"
+          @click="showEditModal = false"
           class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 font-bold transition-colors"
         >
           取消
         </button>
         <button 
-          @click="confirmEditDeadline"
+          @click="confirmEdit"
           class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-500 font-bold shadow-lg shadow-blue-500/25 transition-all"
         >
           確認修改

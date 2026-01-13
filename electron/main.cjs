@@ -128,8 +128,8 @@ ipcMain.handle('get-history', () => {
   return jsonService.getHistory();
 });
 
-ipcMain.handle('start-session', (event, { shop, deadline, host }) => {
-  return jsonService.startSession(shop, deadline, host);
+ipcMain.handle('start-session', (event, { shop, deadline, host, teaTime }) => {
+  return jsonService.startSession(shop, deadline, host, teaTime);
 });
 
 ipcMain.handle('update-weights', (event, winnerId) => {
