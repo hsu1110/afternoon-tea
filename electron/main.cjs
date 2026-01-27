@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const JsonService = require('./jsonService.cjs');
 
@@ -10,6 +10,9 @@ if (require('electron-squirrel-startup')) {
 const fs = require('fs');
 
 let jsonService;
+let mainWindow;
+let tray;
+let isQuitting = false;
 
 // Config Handling
 const getConfigPath = () => path.join(app.getPath('userData'), 'config.json');
@@ -32,6 +35,45 @@ const saveConfig = (config) => {
   } catch (error) {
     console.error('Failed to save config:', error);
   }
+};
+
+const createTray = () => {
+  const iconPath = path.join(__dirname, '../public/icon.png');
+  const trayIcon = nativeImage.createFromPath(iconPath);
+  tray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
+  tray.setToolTip('下午茶轉盤');
+
+  const contextMenu = Menu.buildFromTemplate([
+    { 
+      label: '顯示主視窗', 
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      } 
+    },
+    { 
+      label: '結束程式', 
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      } 
+    }
+  ]);
+
+  tray.setContextMenu(contextMenu);
+
+  tray.on('click', () => {
+    if (mainWindow) {
+      if (mainWindow.isVisible()) {
+        mainWindow.hide();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }
+  });
 };
 
 const createWindow = () => {
@@ -92,7 +134,7 @@ const createWindow = () => {
   jsonService.initSampleData();
 
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     icon: path.join(__dirname, '../public/icon.png'),
@@ -103,6 +145,14 @@ const createWindow = () => {
       nodeIntegration: false,
       contextIsolation: true,
     },
+  });
+
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+      return false;
+    }
   });
 
   // In production, load the index.html of the app.
@@ -261,6 +311,7 @@ ipcMain.handle('set-data-path', async () => {
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
   createWindow();
+  createTray();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

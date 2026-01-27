@@ -2,7 +2,7 @@
   "name": "afternoon_tea",
   "private": true,
   "version": "1.0.3",
-  "releaseNotes": "1. 修改截止時間/n 2. 修改下午茶時間/n 3. 修改複製文字/n 4. 修改剩餘時間倒數顯示",
+  "releaseNotes": "1. 修改截止時間/n 2. 修改下午茶時間/n 3. 修改複製文字/n 4. 修改剩餘時間倒數顯示/n 5. 關閉視窗程式不會關閉(配合提醒功能)",
   "author": "George",
   "description": "下午茶",
   "type": "module",
