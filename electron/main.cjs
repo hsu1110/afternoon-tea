@@ -417,9 +417,53 @@ ipcMain.on('window-close', (event) => {
   if (win) win.close();
 });
 
-// --- Update Mechanism (Shared Folder Strategy) ---
-// 邏輯：更新檔位於 dataDir 的上一層目錄
+// --- Update Mechanism (Hybrid: GitHub + Shared Folder) ---
+const { autoUpdater } = require('electron-updater');
+
+// Configure autoUpdater
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+
 ipcMain.handle('check-for-update', async () => {
+  let githubResult = null;
+  
+  // 1. Try GitHub Auto-Update First
+  try {
+    // Only check if we have a repository configured (basic check)
+    // autoUpdater will throw if not configured, so we wrap in try-catch
+    const result = await autoUpdater.checkForUpdates();
+    
+    if (result && result.updateInfo) {
+      const remoteVersion = result.updateInfo.version;
+      const currentVersion = app.getVersion();
+      
+      // semver comparison is handled by autoUpdater, but we double check
+      if (remoteVersion !== currentVersion) { // autoUpdater only returns if update available usually? No, it returns result regardless.
+        // Actually checkForUpdates returns result.downloadPromise if autoDownload is true.
+        // If autoDownload is false, it returns UpdateCheckResult.
+        // We need to check if update is actually available.
+        // autoUpdater emits 'update-available' if there is one.
+        // But here we are waiting for the promise.
+        
+        // Simple version compare (string compare might be enough if format is strict, but semver is safer)
+        // Let's rely on autoUpdater's result object if possible, or just compare strings
+        if (remoteVersion > currentVersion) {
+           return {
+             hasUpdate: true,
+             remoteVersion,
+             releaseNotes: result.updateInfo.releaseNotes || '',
+             installerPath: 'GITHUB_AUTO_UPDATE', // Flag for perform-update
+             source: 'github'
+           };
+        }
+      }
+    }
+  } catch (error) {
+    console.log('GitHub update check failed, falling back to local:', error.message);
+    // Continue to local check
+  }
+
+  // 2. Fallback to Shared Folder Strategy
   try {
     const config = loadConfig();
     const dataDir = config.dataDir;
@@ -445,8 +489,7 @@ ipcMain.handle('check-for-update', async () => {
     const remoteVersion = remoteData.version;
     const currentVersion = app.getVersion();
 
-    // 簡單字串比對 (建議格式: 1.0.0)
-    // 如果遠端版本 > 目前版本
+    // 簡單字串比對
     if (remoteVersion && remoteVersion > currentVersion) {
       const installerName = remoteData.installerName || `Afternoon Tea Setup ${remoteVersion}.exe`;
       const installerPath = path.join(updateDir, installerName);
@@ -465,7 +508,8 @@ ipcMain.handle('check-for-update', async () => {
         hasUpdate: true, 
         remoteVersion, 
         installerPath,
-        releaseNotes: remoteData.releaseNotes || ''
+        releaseNotes: remoteData.releaseNotes || '',
+        source: 'local'
       };
     }
     
@@ -476,7 +520,29 @@ ipcMain.handle('check-for-update', async () => {
   }
 });
 
-ipcMain.handle('perform-update', (event, installerPath) => {
+ipcMain.handle('perform-update', async (event, installerPath) => {
+  // Case 1: GitHub Update
+  if (installerPath === 'GITHUB_AUTO_UPDATE') {
+    try {
+      // Trigger download
+      await autoUpdater.downloadUpdate();
+      // Wait for download to finish is handled by the promise? 
+      // downloadUpdate returns a Promise that resolves to the downloaded file path.
+      
+      // Once downloaded, we quit and install.
+      // However, we might want to notify the user "Downloading..."?
+      // For now, let's just wait and install.
+      // NOTE: This might freeze the UI if we await it without progress.
+      // But since we are in a 'handle', the renderer awaits this.
+      
+      autoUpdater.quitAndInstall();
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: '下載更新失敗: ' + e.message };
+    }
+  }
+
+  // Case 2: Local Shared Folder Update
   const { shell } = require('electron');
   if (fs.existsSync(installerPath)) {
     shell.openPath(installerPath);
