@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, Notification } = require('electron');
 const path = require('path');
 const JsonService = require('./jsonService.cjs');
 
@@ -71,6 +71,56 @@ const createTray = () => {
       } else {
         mainWindow.show();
         mainWindow.focus();
+      }
+    }
+  });
+};
+
+
+
+// Set App User Model ID for Windows Notifications
+app.setAppUserModelId('Afternoon Tea');
+
+const checkNotifications = () => {
+  if (!jsonService) return;
+
+  const data = jsonService.getOrders();
+  if (!data || !data.activeSessions) return;
+
+  const now = new Date();
+
+  data.activeSessions.forEach(session => {
+    // Check Deadline (Notify 1 hour before)
+    if (session.deadline && !session.notifiedDeadline) {
+      const deadlineDate = new Date(session.deadline);
+      const reminderTime = new Date(deadlineDate.getTime() - 60 * 60 * 1000); // 1 hour before
+      
+      if (now >= reminderTime) {
+        
+        // Fallback to basic notification since XML toast failed on this system
+        const notification = new Notification({
+          title: '點餐提醒',
+          body: `${session.shopName} 還有 1 小時截止！請記得點餐。`,
+          icon: path.join(__dirname, '../public/icon.png'),
+          // silent: false
+        });
+        
+        notification.on('click', () => {
+          if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        });
+        
+        notification.on('failed', (event, error) => {
+          console.error('[Notification] Failed:', error);
+        });
+
+        notification.show();
+        
+        // Update session to avoid repeat notifications
+        jsonService.updateSession({ id: session.id, notifiedDeadline: true });
       }
     }
   });
@@ -312,6 +362,13 @@ ipcMain.handle('set-data-path', async () => {
 app.whenReady().then(() => {
   createWindow();
   createTray();
+
+  // Check for notifications every 60 seconds
+  setInterval(checkNotifications, 60 * 1000);
+  // Initial check in case we just started past a deadline
+  setTimeout(checkNotifications, 5000);
+
+
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
