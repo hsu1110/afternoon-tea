@@ -38,10 +38,18 @@ const handleCancel = () => {
   visible.value = false;
 };
 
-// Format release notes (replace \n with <br>)
+import { marked } from 'marked';
+
+// ... (props definition)
+
+// Format release notes (Markdown to HTML)
 const formattedReleaseNotes = computed(() => {
-  // Support \n, \r\n, and /n (user custom)
-  return (props.releaseNotes || '無詳細說明').replace(/(\r\n|\n|\/n)/g, '<br/>');
+  if (!props.releaseNotes) return '無詳細說明';
+  try {
+    return marked.parse(props.releaseNotes);
+  } catch (e) {
+    return props.releaseNotes;
+  }
 });
 </script>
 

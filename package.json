@@ -2,7 +2,7 @@
   "name": "afternoon_tea",
   "private": true,
   "version": "1.0.7",
-  "releaseNotes": "1. github actions測試4",
+  "releaseNotes": "1. github actions測試5/n 2. 換行測試/n 3. 換行測試2",
   "author": "George",
   "description": "下午茶",
   "type": "module",
@@ -23,6 +23,7 @@
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.7.3",
+    "marked": "^17.0.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
