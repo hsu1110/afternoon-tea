@@ -16,11 +16,21 @@ const updateInfo = ref({
   releaseNotes: '',
   installerPath: ''
 });
+const downloadProgress = ref(0);
+const isDownloading = ref(false);
 
 onMounted(async () => {
   try {
     const ver = await window.electronAPI.getAppVersion();
     appVersion.value = `v${ver}`;
+    
+    // Listen for update progress
+    if (window.electronAPI.onUpdateProgress) {
+      window.electronAPI.onUpdateProgress((progressObj) => {
+        isDownloading.value = true;
+        downloadProgress.value = Math.round(progressObj.percent);
+      });
+    }
     
     // Auto check for update on startup
     checkUpdate(true);
@@ -243,6 +253,8 @@ provide('triggerConfirm', triggerConfirm);
       :release-notes="updateInfo.releaseNotes"
       :installer-path="updateInfo.installerPath"
       :is-latest="updateInfo.isLatest"
+      :progress="downloadProgress"
+      :is-downloading="isDownloading"
       @confirm="handleUpdateConfirm"
     />
 

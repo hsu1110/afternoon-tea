@@ -444,6 +444,11 @@ autoUpdater.on('update-not-available', (info) => {
 autoUpdater.on('error', (err) => {
   console.error('[AutoUpdater] Error:', err);
 });
+autoUpdater.on('download-progress', (progressObj) => {
+  if (mainWindow) {
+    mainWindow.webContents.send('update-progress', progressObj);
+  }
+});
 
 ipcMain.handle('check-for-update', async () => {
   let githubResult = null;

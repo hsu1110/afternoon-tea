@@ -6,7 +6,15 @@ const props = defineProps({
   version: String,
   releaseNotes: String,
   installerPath: String,
-  isLatest: Boolean
+  isLatest: Boolean,
+  progress: {
+    type: Number,
+    default: 0
+  },
+  isDownloading: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const emit = defineEmits(['update:modelValue', 'confirm']);
@@ -22,7 +30,8 @@ const handleConfirm = () => {
     return;
   }
   emit('confirm', props.installerPath);
-  visible.value = false;
+  // Do not close modal immediately, wait for download
+  // visible.value = false; 
 };
 
 const handleCancel = () => {
@@ -90,10 +99,21 @@ const formattedReleaseNotes = computed(() => {
         ></div>
       </div>
 
+      <!-- Progress Bar -->
+      <div v-if="isDownloading" class="relative z-10 mb-6">
+        <div class="flex justify-between text-xs text-slate-400 mb-1">
+          <span>下載中...</span>
+          <span>{{ progress }}%</span>
+        </div>
+        <div class="w-full bg-slate-700 rounded-full h-2.5">
+          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" :style="{ width: progress + '%' }"></div>
+        </div>
+      </div>
+
       <!-- Footer / Actions -->
       <div class="relative z-10 flex gap-3 pt-2">
         <button 
-          v-if="!isLatest"
+          v-if="!isLatest && !isDownloading"
           @click="handleCancel"
           class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-bold transition-colors"
         >
@@ -101,11 +121,13 @@ const formattedReleaseNotes = computed(() => {
         </button>
         <button 
           @click="isLatest ? handleCancel() : handleConfirm()"
-          class="flex-1 px-4 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+          :disabled="isDownloading"
+          class="flex-1 px-4 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           :class="isLatest ? 'bg-slate-700 hover:bg-slate-600 text-white shadow-slate-500/25' : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white shadow-green-500/25'"
         >
-          <span v-if="!isLatest">🚀</span>
-          {{ isLatest ? '關閉' : '立即更新' }}
+          <span v-if="!isLatest && !isDownloading">🚀</span>
+          <span v-if="isDownloading" class="animate-spin">⏳</span>
+          {{ isLatest ? '關閉' : (isDownloading ? '下載中...' : '立即更新') }}
         </button>
       </div>
 
