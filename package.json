@@ -1,8 +1,8 @@
 {
   "name": "afternoon_tea",
   "private": true,
-  "version": "1.0.4",
-  "releaseNotes": "1. github actions測試",
+  "version": "1.0.5",
+  "releaseNotes": "1. github actions測試2",
   "author": "George",
   "description": "下午茶",
   "type": "module",
@@ -61,6 +61,13 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "hsu1110",
+        "repo": "afternoon-tea"
+      }
+    ]
   }
 }
