@@ -31,7 +31,8 @@ const handleCancel = () => {
 
 // Format release notes (replace \n with <br>)
 const formattedReleaseNotes = computed(() => {
-  return (props.releaseNotes || '無詳細說明').replace(/\n/g, '<br/>');
+  // Support \n, \r\n, and /n (user custom)
+  return (props.releaseNotes || '無詳細說明').replace(/(\r\n|\n|\/n)/g, '<br/>');
 });
 </script>
 

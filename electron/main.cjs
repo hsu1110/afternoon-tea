@@ -37,8 +37,15 @@ const saveConfig = (config) => {
   }
 };
 
+const getIconPath = () => {
+  if (process.env.NODE_ENV === 'development') {
+    return path.join(__dirname, '../public/icon.png');
+  }
+  return path.join(__dirname, '../dist/icon.png');
+};
+
 const createTray = () => {
-  const iconPath = path.join(__dirname, '../public/icon.png');
+  const iconPath = getIconPath();
   const trayIcon = nativeImage.createFromPath(iconPath);
   tray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
   tray.setToolTip('下午茶轉盤');
@@ -101,7 +108,7 @@ const checkNotifications = () => {
         const notification = new Notification({
           title: '點餐提醒',
           body: `${session.shopName} 還有 1 小時截止！請記得點餐。`,
-          icon: path.join(__dirname, '../public/icon.png'),
+          icon: getIconPath(),
           // silent: false
         });
         
