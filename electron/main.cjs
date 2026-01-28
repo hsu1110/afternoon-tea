@@ -431,6 +431,20 @@ const { autoUpdater } = require('electron-updater');
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
+// Add logging for debugging
+autoUpdater.on('checking-for-update', () => {
+  console.log('[AutoUpdater] Checking for update...');
+});
+autoUpdater.on('update-available', (info) => {
+  console.log('[AutoUpdater] Update available:', info);
+});
+autoUpdater.on('update-not-available', (info) => {
+  console.log('[AutoUpdater] Update not available:', info);
+});
+autoUpdater.on('error', (err) => {
+  console.error('[AutoUpdater] Error:', err);
+});
+
 ipcMain.handle('check-for-update', async () => {
   let githubResult = null;
   
@@ -466,8 +480,10 @@ ipcMain.handle('check-for-update', async () => {
       }
     }
   } catch (error) {
-    console.log('GitHub update check failed, falling back to local:', error.message);
-    // Continue to local check
+    console.log('GitHub update check failed:', error);
+    // If we are testing GitHub updates specifically, we might want to see this error.
+    // Let's return it if local check is not configured or fails.
+    githubResult = { hasUpdate: false, error: 'GitHub Update Failed: ' + error.message };
   }
 
   // 2. Fallback to Shared Folder Strategy
@@ -475,8 +491,9 @@ ipcMain.handle('check-for-update', async () => {
     const config = loadConfig();
     const dataDir = config.dataDir;
 
+    // If no dataDir, and we had a GitHub error, return the GitHub error
     if (!dataDir) {
-      return { hasUpdate: false, message: '未設定資料路徑，無法搜尋更新' };
+      return githubResult || { hasUpdate: false, message: '未設定資料路徑，無法搜尋更新' };
     }
 
     // 取得上一層目錄
@@ -520,9 +537,19 @@ ipcMain.handle('check-for-update', async () => {
       };
     }
     
+    // If we reached here, local check found no update.
+    // If GitHub check failed previously, return that error so we know why.
+    if (githubResult && githubResult.error) {
+      return { hasUpdate: false, error: githubResult.error + ' (Local check also found no update)' };
+    }
+
     return { hasUpdate: false, message: '目前已是最新版本' };
     
   } catch (error) {
+    // If both failed, return the GitHub error if it exists, otherwise the local error
+    if (githubResult && githubResult.error) {
+      return { hasUpdate: false, error: `${githubResult.error} | Local: ${error.message}` };
+    }
     return { hasUpdate: false, error: error.message };
   }
 });

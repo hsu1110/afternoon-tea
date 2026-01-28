@@ -1,8 +1,8 @@
 {
   "name": "afternoon_tea",
   "private": true,
-  "version": "1.0.5",
-  "releaseNotes": "1. github actions測試2",
+  "version": "1.0.6",
+  "releaseNotes": "1. github actions測試3",
   "author": "George",
   "description": "下午茶",
   "type": "module",
