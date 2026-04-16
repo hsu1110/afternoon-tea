@@ -168,7 +168,7 @@ const confirmEdit = async () => {
 // 複製訂購連結文字
 const copyGroupBuyText = (session) => {
   const deadlineTime = session.deadline ? new Date(session.deadline).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '無';
-  const teaTimeText = session.teaTime ? new Date(session.teaTime).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '無';
+  const teaTimeText = session.teaTime ? new Date(session.teaTime).toLocaleString([], { month: '2-digit', day: '2-digit' }) : '無';
   const hostText = session.hostName ? `負責人：${session.hostName}` : '';
   const text = `
 ${teaTimeText}下午茶！🎉
