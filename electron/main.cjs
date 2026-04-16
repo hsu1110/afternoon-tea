@@ -443,6 +443,19 @@ ipcMain.on('window-close', (event) => {
 // --- Update Mechanism (Hybrid: GitHub + Shared Folder) ---
 const { autoUpdater } = require('electron-updater');
 
+// semver 版本比較：回傳 1 (a>b), -1 (a<b), 0 (a==b)
+const compareVersions = (a, b) => {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0;
+    const nb = pb[i] || 0;
+    if (na > nb) return 1;
+    if (na < nb) return -1;
+  }
+  return 0;
+};
+
 // Configure autoUpdater
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
@@ -489,7 +502,7 @@ ipcMain.handle('check-for-update', async () => {
         
         // Simple version compare (string compare might be enough if format is strict, but semver is safer)
         // Let's rely on autoUpdater's result object if possible, or just compare strings
-        if (remoteVersion > currentVersion) {
+        if (compareVersions(remoteVersion, currentVersion) > 0) {
            return {
              hasUpdate: true,
              remoteVersion,
@@ -535,7 +548,7 @@ ipcMain.handle('check-for-update', async () => {
     const currentVersion = app.getVersion();
 
     // 簡單字串比對
-    if (remoteVersion && remoteVersion > currentVersion) {
+    if (remoteVersion && compareVersions(remoteVersion, currentVersion) > 0) {
       const installerName = remoteData.installerName || `Afternoon Tea Setup ${remoteVersion}.exe`;
       const installerPath = path.join(updateDir, installerName);
 
