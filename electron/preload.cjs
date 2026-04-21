@@ -36,4 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
   performUpdate: (installerPath) => ipcRenderer.invoke('perform-update', installerPath),
   onUpdateProgress: (callback) => ipcRenderer.on('update-progress', (event, value) => callback(value)),
+
+  // 點餐提醒 API
+  onOrderReminder: (callback) => ipcRenderer.on('order-reminder', (event, data) => callback(data)),
 });

@@ -57,14 +57,18 @@ const loadData = async () => {
     activeSessions.value = Array.isArray(data.activeSessions) ? data.activeSessions : (data.activeSession ? [data.activeSession] : []);
     members.value = await window.electronAPI.getMembers();
     
-    // Restore last user selection (Only on first load)
-    if (!selectedMember.value && !manualName.value) {
+    // 還原成員選擇（用 id 比對，避免 object reference 不同導致 select 掉回預設值）
+    if (selectedMember.value) {
+      const refreshed = members.value.find(m => m.id === selectedMember.value.id);
+      if (refreshed) {
+        selectedMember.value = refreshed;
+      }
+    } else if (!manualName.value) {
+      // 首次載入：嘗試從 localStorage 還原上次使用者
       const lastUserName = localStorage.getItem('lastUser');
       if (lastUserName) {
-        // Normalize for comparison (trim)
         const normalizedLastUser = lastUserName.trim();
         const member = members.value.find(m => m.name.trim() === normalizedLastUser);
-        
         if (member) {
           selectedMember.value = member;
         } else {
@@ -105,6 +109,15 @@ watch(selectedSessionId, (newId) => {
     const session = activeSessions.value.find(s => s.id === newId);
     if (session) {
       loadMenuImage(session.shopId);
+      
+      // 切換店家時，若非編輯狀態，先清空表單，確保能正確載入該店家的紀錄
+      if (!editingOrderId.value) {
+        currentItem.value = '';
+        currentPrice.value = '';
+        currentNote.value = '';
+        isSelfPay.value = false;
+      }
+
       // 嘗試載入上次點餐紀錄
       if (currentUser.value) {
         quickFillLastOrder();
@@ -113,11 +126,13 @@ watch(selectedSessionId, (newId) => {
   }
 });
 
-// 快速帶入上次點餐
+// 快速帶入上次點餐（只在欄位為空時帶入，避免覆蓋使用者已輸入的內容）
 const quickFillLastOrder = async () => {
-  // Don't overwrite if editing
   if (editingOrderId.value) return;
   if (!currentUser.value || !selectedSession.value) return;
+  
+  // 如果品項或價格已經有值，不覆蓋
+  if (currentItem.value || currentPrice.value) return;
   
   try {
     const lastOrder = await window.electronAPI.getLastOrder(currentUser.value, selectedSession.value.shopId);

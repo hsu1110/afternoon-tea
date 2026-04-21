@@ -1,8 +1,8 @@
 {
   "name": "afternoon_tea",
   "private": true,
-  "version": "1.1.0",
-  "releaseNotes": "1. 修正複製文字格式(MM/DD HH:MM->MM/DD)\n2. 修正自動更新BUG(10<9)",
+  "version": "1.1.1",
+  "releaseNotes": "1. 調整點餐提醒視窗顯示方式\n2. 修正自動填入上次點餐紀錄的BUG",
   "author": "George",
   "description": "下午茶",
   "type": "module",

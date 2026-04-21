@@ -104,6 +104,160 @@ const createTray = () => {
 // Set App User Model ID for Windows Notifications
 app.setAppUserModelId('Afternoon Tea');
 
+// 通知狀態存本機 config（不寫回共用的 orders.json，避免 A 通知後 B 收不到）
+const getNotifiedSessions = () => {
+  const config = loadConfig();
+  return config.notifiedSessions || {};
+};
+
+const markNotified = (sessionId, stage) => {
+  const config = loadConfig();
+  if (!config.notifiedSessions) config.notifiedSessions = {};
+  if (!config.notifiedSessions[sessionId]) config.notifiedSessions[sessionId] = [];
+  if (!config.notifiedSessions[sessionId].includes(stage)) {
+    config.notifiedSessions[sessionId].push(stage);
+  }
+  saveConfig(config);
+};
+
+// 提醒階段（分鐘）
+const REMINDER_STAGES = [
+  { minutes: 60, label: '還有 1 小時', urgent: false },
+  { minutes: 10, label: '剩 10 分鐘！', urgent: true },
+];
+
+// 顯示提醒小視窗（獨立 BrowserWindow，alwaysOnTop，app 藏在 tray 也看得到）
+let reminderWindow = null;
+let reminderWindowTimer = null;
+const showReminderWindow = (shopName, label, urgent) => {
+  // 如果已經有一個提醒視窗就先關掉
+  if (reminderWindow && !reminderWindow.isDestroyed()) {
+    reminderWindow.close();
+  }
+  if (reminderWindowTimer) {
+    clearTimeout(reminderWindowTimer);
+    reminderWindowTimer = null;
+  }
+
+  const { screen } = require('electron');
+  const display = screen.getPrimaryDisplay();
+  const { width, height } = display.workAreaSize;
+
+  const winWidth = 340;
+  const winHeight = 120;
+
+  reminderWindow = new BrowserWindow({
+    width: winWidth,
+    height: winHeight,
+    x: width - winWidth - 20,
+    y: height - winHeight - 20,
+    frame: false,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    transparent: true,
+    focusable: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  const bgColor = urgent ? '#92400e' : '#1e3a5f';
+  const borderColor = urgent ? '#f97316' : '#3b82f6';
+  const emoji = urgent ? '🔥' : '🍵';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+          background: transparent;
+          -webkit-app-region: drag;
+          cursor: pointer;
+        }
+        .card {
+          background: linear-gradient(135deg, ${bgColor}, #0f172a);
+          border: 2px solid ${borderColor};
+          border-radius: 16px;
+          padding: 20px 24px;
+          color: white;
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+          ${urgent ? `animation: pulse 2s infinite;` : ''}
+        }
+        .emoji { font-size: 32px; flex-shrink: 0; }
+        .content { flex: 1; min-width: 0; }
+        .title { font-size: 13px; font-weight: 700; margin-bottom: 4px; opacity: 0.85; }
+        .message { font-size: 15px; font-weight: 700; }
+        .close {
+          -webkit-app-region: no-drag;
+          background: rgba(255,255,255,0.15);
+          border: none;
+          color: white;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .close:hover { background: rgba(255,255,255,0.3); }
+        @keyframes pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4), 0 20px 40px rgba(0,0,0,0.5); }
+          50% { box-shadow: 0 0 0 8px rgba(249, 115, 22, 0), 0 20px 40px rgba(0,0,0,0.5); }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="card" onclick="window.close()">
+        <div class="emoji">${emoji}</div>
+        <div class="content">
+          <div class="title">點餐提醒</div>
+          <div class="message">${shopName} ${label}截止！</div>
+        </div>
+        <button class="close" onclick="event.stopPropagation(); window.close()">✕</button>
+      </div>
+    </body>
+    </html>
+  `;
+
+  reminderWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+  // 點擊視窗本體 → 開啟主視窗
+  reminderWindow.webContents.on('before-input-event', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  // 15 秒後自動關閉
+  reminderWindowTimer = setTimeout(() => {
+    if (reminderWindow && !reminderWindow.isDestroyed()) {
+      reminderWindow.close();
+    }
+  }, 15000);
+
+  reminderWindow.on('closed', () => {
+    reminderWindow = null;
+    if (reminderWindowTimer) {
+      clearTimeout(reminderWindowTimer);
+      reminderWindowTimer = null;
+    }
+  });
+};
+
 const checkNotifications = () => {
   if (!jsonService) return;
 
@@ -111,23 +265,32 @@ const checkNotifications = () => {
   if (!data || !data.activeSessions) return;
 
   const now = new Date();
+  const notified = getNotifiedSessions();
 
   data.activeSessions.forEach(session => {
-    // Check Deadline (Notify 1 hour before)
-    if (session.deadline && !session.notifiedDeadline) {
-      const deadlineDate = new Date(session.deadline);
-      const reminderTime = new Date(deadlineDate.getTime() - 60 * 60 * 1000); // 1 hour before
-      
+    if (!session.deadline) return;
+
+    const deadlineDate = new Date(session.deadline);
+    if (now >= deadlineDate) return; // 已截止不通知
+
+    const alreadyNotified = notified[session.id] || [];
+
+    for (const stage of REMINDER_STAGES) {
+      const stageKey = `${stage.minutes}min`;
+      if (alreadyNotified.includes(stageKey)) continue;
+
+      const reminderTime = new Date(deadlineDate.getTime() - stage.minutes * 60 * 1000);
       if (now >= reminderTime) {
-        
-        // Fallback to basic notification since XML toast failed on this system
+        // 彈出提醒小視窗
+        showReminderWindow(session.shopName, stage.label, stage.urgent);
+
+        // 系統通知（雙重保險）
         const notification = new Notification({
-          title: '點餐提醒',
-          body: `${session.shopName} 還有 1 小時截止！請記得點餐。`,
+          title: '🍵 點餐提醒',
+          body: `${session.shopName} ${stage.label}截止！請記得點餐。`,
           icon: getIconPath(),
-          // silent: false
         });
-        
+
         notification.on('click', () => {
           if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
@@ -135,19 +298,35 @@ const checkNotifications = () => {
             mainWindow.focus();
           }
         });
-        
-        notification.on('failed', (event, error) => {
-          console.error('[Notification] Failed:', error);
-        });
 
         notification.show();
-        
-        // Update session to avoid repeat notifications
-        jsonService.updateSession({ id: session.id, notifiedDeadline: true });
+
+        // Taskbar 閃爍
+        if (mainWindow && !mainWindow.isFocused()) {
+          mainWindow.flashFrame(true);
+        }
+
+        markNotified(session.id, stageKey);
+        break;
       }
     }
   });
+
+  // 清理已結束 session 的通知紀錄
+  const activeIds = new Set(data.activeSessions.map(s => s.id));
+  const config = loadConfig();
+  if (config.notifiedSessions) {
+    let changed = false;
+    for (const id of Object.keys(config.notifiedSessions)) {
+      if (!activeIds.has(id)) {
+        delete config.notifiedSessions[id];
+        changed = true;
+      }
+    }
+    if (changed) saveConfig(config);
+  }
 };
+
 
 const createWindow = () => {
   // Initialize Data Service

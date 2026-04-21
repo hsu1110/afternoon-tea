@@ -194,6 +194,11 @@ class JsonService {
   getLastOrder(userName, shopId) {
     const data = this.getOrders();
     const history = this.getHistory();
+    const shops = this.getShops();
+
+    // 取得當前要比對的店家名稱，以備 ID 失效時透過店名找紀錄（例如不小心刪除店家又重建了同名店家）
+    const targetShop = shops.find((s) => String(s.id) === String(shopId));
+    const targetShopName = targetShop ? targetShop.name : null;
 
     // Search in history (reverse order for latest)
     const allSessions = [...data.activeSessions, ...history];
@@ -204,7 +209,12 @@ class JsonService {
     );
 
     for (const session of allSessions) {
-      if (session.shopId === shopId) {
+      // 條件 1：ID 剛好一致（轉型再比，避免 1 遇到 "1" 的問題）
+      // 條件 2：若有指定 targetShopName，則允許「只要店名一模一樣」就算同家店的紀錄
+      const isSameShop = String(session.shopId) === String(shopId) || 
+                         (targetShopName && session.shopName === targetShopName);
+                         
+      if (isSameShop) {
         // Find order by user in this session
         // Sort orders by timestamp desc if possible, but usually just finding the last one is enough
         const userOrder = session.orders.find((o) => o.name === userName);
