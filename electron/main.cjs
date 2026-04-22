@@ -284,23 +284,6 @@ const checkNotifications = () => {
         // 彈出提醒小視窗
         showReminderWindow(session.shopName, stage.label, stage.urgent);
 
-        // 系統通知（雙重保險）
-        const notification = new Notification({
-          title: '🍵 點餐提醒',
-          body: `${session.shopName} ${stage.label}截止！請記得點餐。`,
-          icon: getIconPath(),
-        });
-
-        notification.on('click', () => {
-          if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.show();
-            mainWindow.focus();
-          }
-        });
-
-        notification.show();
-
         // Taskbar 閃爍
         if (mainWindow && !mainWindow.isFocused()) {
           mainWindow.flashFrame(true);
