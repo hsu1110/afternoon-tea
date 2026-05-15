@@ -542,6 +542,90 @@ ipcMain.handle('set-data-path', async () => {
   return { success: true, path: newPath, message: '設定已儲存，請重啟應用程式以生效。' };
 });
 
+ipcMain.handle('get-api-key', () => {
+  const config = loadConfig();
+  return config.geminiApiKey || '';
+});
+
+ipcMain.handle('save-api-key', (event, key) => {
+  const config = loadConfig();
+  config.geminiApiKey = key;
+  saveConfig(config);
+  return { success: true };
+});
+
+ipcMain.handle('delete-api-key', () => {
+  const config = loadConfig();
+  delete config.geminiApiKey;
+  saveConfig(config);
+  return { success: true };
+});
+
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const crypto = require('crypto');
+
+ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKey }) => {
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const promptTemplate = fs.readFileSync(path.join(__dirname, 'prompt/prompt.md'), 'utf-8');
+
+    const userPromptStr = promptTemplate
+      .replace(/{{shopName}}/g, shopName);
+
+    const matches = imageBase64.match(/^data:(.+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      throw new Error('Invalid image format');
+    }
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+      ]
+    });
+
+    const result = await model.generateContent([
+      userPromptStr,
+      { inlineData: { data: base64Data, mimeType: mimeType } }
+    ]);
+
+    const parsedData = JSON.parse(result.response.text());
+    
+    parsedData.shop_id = shopId;
+    if (parsedData.categories) {
+      parsedData.categories.forEach(category => {
+        if (category.items) {
+          category.items = category.items.map(item => ({
+            ...item,
+            item_id: `${shopId}_${item.item_id || crypto.randomUUID()}` 
+          }));
+        }
+      });
+    }
+
+    return { success: true, data: parsedData };
+  } catch (error) {
+    console.error('Gemini API Error:', error);
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('get-menu', (event, shopId) => {
+  return jsonService.getMenu(shopId);
+});
+
+ipcMain.handle('save-menu', (event, shopId, menuData) => {
+  return jsonService.saveMenu(shopId, menuData);
+});
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {

@@ -28,6 +28,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteFundTransaction: (id) => ipcRenderer.invoke('delete-fund-transaction', id),
   getDataPath: () => ipcRenderer.invoke('get-data-path'),
   setDataPath: () => ipcRenderer.invoke('set-data-path'),
+  
+  // Gemini API
+  getApiKey: () => ipcRenderer.invoke('get-api-key'),
+  saveApiKey: (key) => ipcRenderer.invoke('save-api-key', key),
+  deleteApiKey: () => ipcRenderer.invoke('delete-api-key'),
+  scanMenu: (params) => ipcRenderer.invoke('scan-menu', params),
+  getMenu: (shopId) => ipcRenderer.invoke('get-menu', shopId),
+  saveMenu: (shopId, menuData) => ipcRenderer.invoke('save-menu', shopId, menuData),
+
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),

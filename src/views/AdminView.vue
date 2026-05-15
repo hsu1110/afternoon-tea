@@ -2,6 +2,7 @@
 import { ref, inject, onMounted } from 'vue';
 import ShopManager from '../components/ShopManager.vue';
 import MemberManager from '../components/MemberManager.vue';
+import MenuManager from '../components/MenuManager.vue';
 
 const activeTab = ref('shops'); // 'shops', 'members', 'settings'
 const triggerToast = inject('triggerToast');
@@ -52,11 +53,11 @@ onMounted(() => {
         店家管理
       </button>
       <button 
-        @click="activeTab = 'members'"
+        @click="activeTab = 'menus'"
         class="px-6 py-3 font-bold text-lg transition-all border-b-2"
-        :class="activeTab === 'members' ? 'text-blue-400 border-blue-400' : 'text-slate-400 border-transparent hover:text-white'"
+        :class="activeTab === 'menus' ? 'text-blue-400 border-blue-400' : 'text-slate-400 border-transparent hover:text-white'"
       >
-        成員管理
+        菜單管理
       </button>
       <button 
         @click="activeTab = 'settings'"
@@ -64,6 +65,13 @@ onMounted(() => {
         :class="activeTab === 'settings' ? 'text-blue-400 border-blue-400' : 'text-slate-400 border-transparent hover:text-white'"
       >
         系統設定
+      </button>
+      <button 
+        @click="activeTab = 'members'"
+        class="px-6 py-3 font-bold text-lg transition-all border-b-2"
+        :class="activeTab === 'members' ? 'text-blue-400 border-blue-400' : 'text-slate-400 border-transparent hover:text-white'"
+      >
+        成員管理
       </button>
     </div>
 
@@ -74,6 +82,10 @@ onMounted(() => {
 
     <div v-if="activeTab === 'members'">
       <MemberManager />
+    </div>
+
+    <div v-if="activeTab === 'menus'">
+      <MenuManager />
     </div>
 
     <div v-if="activeTab === 'settings'">

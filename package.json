@@ -1,8 +1,8 @@
 {
   "name": "afternoon_tea",
   "private": true,
-  "version": "1.1.1",
-  "releaseNotes": "1. 調整點餐提醒視窗顯示方式\n2. 修正自動填入上次點餐紀錄的BUG\n3. 修正提醒功能",
+  "version": "1.2.0",
+  "releaseNotes": "1. 新增菜單辨識功能，不需要再手動輸入菜單內容\n2. 點餐介面優化",
   "author": "George",
   "description": "下午茶",
   "type": "module",
@@ -21,6 +21,7 @@
     "url": "https://github.com/hsu1110/afternoon-tea.git"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.7.3",
     "marked": "^17.0.1",

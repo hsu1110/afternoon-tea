@@ -1,7 +1,11 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 const props = defineProps({
+  menuData: {
+    type: Object,
+    default: null
+  },
   members: {
     type: Array,
     default: () => []
@@ -94,6 +98,229 @@ const handleMemberChange = () => {
 const handleManualNameBlur = () => {
   emit('quickFill');
 };
+
+const selectedItemId = ref('');
+const selectedSizeLabel = ref('');
+const selectedCustomizations = ref({});
+const manualUserNote = ref('');
+const isManualMode = ref(true);
+
+const hasAIMenu = computed(() => {
+  if (!props.menuData) return false;
+  return props.menuData.categories && props.menuData.categories.length > 0;
+});
+
+watch(() => props.menuData, () => {
+  isManualMode.value = !hasAIMenu.value;
+}, { immediate: true });
+
+const currentMenuItem = computed(() => {
+  if (!props.menuData || !props.menuData.categories) return null;
+  
+  for (const cat of props.menuData.categories) {
+    if (cat.items) {
+      const item = cat.items.find(i => i.item_id === selectedItemId.value);
+      if (item) return item;
+    }
+  }
+  
+  return null;
+});
+
+const allCustomizationGroups = computed(() => {
+  if (!currentMenuItem.value) return [];
+  
+  const globalCustoms = props.menuData?.global_customizations || [];
+  const itemCustoms = currentMenuItem.value.item_specific_customizations || [];
+  
+  // Merge, letting itemCustoms override globalCustoms based on group_name
+  const mergedMap = new Map();
+  
+  globalCustoms.forEach(g => mergedMap.set(g.group_name, g));
+  itemCustoms.forEach(g => mergedMap.set(g.group_name, g));
+  
+  return Array.from(mergedMap.values());
+});
+
+watch(() => currentMenuItem.value?.item_id, (newId, oldId) => {
+  if (newId && newId !== oldId && !props.editingOrderId) {
+    const item = currentMenuItem.value;
+    selectedSizeLabel.value = (item.sizes && item.sizes.length > 0) ? item.sizes[0].label : '';
+    
+    const initCustoms = {};
+    allCustomizationGroups.value.forEach(g => {
+      initCustoms[g.group_name] = g.max_selection === 1 ? '' : [];
+    });
+    selectedCustomizations.value = initCustoms;
+  }
+});
+
+watch([currentMenuItem, selectedSizeLabel, selectedCustomizations, manualUserNote], () => {
+  if (!currentMenuItem.value || isManualMode.value) return;
+  
+  const item = currentMenuItem.value;
+  let price = 0;
+  
+  const sizeObj = item.sizes?.find(s => s.label === selectedSizeLabel.value);
+  let sizeText = '';
+  if (sizeObj) {
+    price += sizeObj.price || 0;
+    if (sizeObj.label !== '一般' && sizeObj.label !== '單一尺寸' && sizeObj.label !== '常規') {
+      sizeText = sizeObj.label;
+    }
+  }
+
+  const customTexts = [];
+    for (const groupName in selectedCustomizations.value) {
+      const selectedOptions = selectedCustomizations.value[groupName];
+      if (!selectedOptions || (Array.isArray(selectedOptions) && selectedOptions.length === 0)) continue;
+      
+      const group = allCustomizationGroups.value.find(g => g.group_name === groupName);
+      if (!group) continue;
+
+      const opts = Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions];
+      const freeCount = group.free_selection_count || 0;
+      const extraPrice = group.extra_selection_price || 0;
+      
+      // 1. 單項附加費
+      opts.forEach((optName) => {
+        const optDef = group.options.find(o => o.name === optName);
+        if (optDef) {
+          price += optDef.price_adjustment || 0;
+          customTexts.push(optName);
+        }
+      });
+
+      // 2. 超額數量費
+      if (opts.length > freeCount) {
+        price += (opts.length - freeCount) * extraPrice;
+      }
+    }
+
+  const generatedNoteParts = [];
+  if (sizeText) generatedNoteParts.push(sizeText);
+  if (customTexts.length > 0) generatedNoteParts.push(customTexts.join(', '));
+  
+  const generatedNoteStr = generatedNoteParts.length > 0 ? `[${generatedNoteParts.join(' | ')}] ` : '';
+  
+  localItem.value = item.name;
+  localPrice.value = price;
+  localNote.value = `${generatedNoteStr}${manualUserNote.value}`.trim();
+}, { deep: true });
+
+watch(() => props.editingOrderId, (newVal) => {
+  if (newVal) {
+    // When editing starts, populate manualUserNote from localNote
+    // Try to separate generated part
+    const noteStr = localNote.value || '';
+    const match = noteStr.match(/^\[(.*?)\]\s*(.*)$/);
+    if (match) {
+      manualUserNote.value = match[2];
+    } else {
+      manualUserNote.value = noteStr;
+    }
+
+    if (props.menuData && props.menuData.categories) {
+      let matchedItem = null;
+      for (const cat of props.menuData.categories) {
+        if (cat.items) {
+          matchedItem = cat.items.find(i => i.name === localItem.value);
+          if (matchedItem) break;
+        }
+      }
+
+      if (matchedItem) {
+        isManualMode.value = false;
+        selectedItemId.value = matchedItem.item_id;
+        // Parsing existing sizes/options from note is complex, skip for MVP. Users can re-select.
+      } else {
+        isManualMode.value = true;
+      }
+    }
+  } else {
+    // Cancel edit or submit finish
+    selectedItemId.value = '';
+    manualUserNote.value = '';
+    if (hasAIMenu.value) {
+      isManualMode.value = false;
+    }
+  }
+});
+
+// Also when localNote changes from outside (quick fill), update manualUserNote
+watch(localNote, (newVal) => {
+  if (!selectedItemId.value) return; // Only care if AI menu is active
+  const match = (newVal || '').match(/^\[(.*?)\]\s*(.*)$/);
+  if (!match) {
+    if (manualUserNote.value !== newVal) manualUserNote.value = newVal || '';
+  }
+});
+const isOptionSelected = (group, optName) => {
+  const val = selectedCustomizations.value[group.group_name];
+  if (Array.isArray(val)) {
+    return val.includes(optName);
+  }
+  return val === optName;
+};
+
+const toggleOption = (group, optName) => {
+  const groupName = group.group_name;
+  const current = selectedCustomizations.value[groupName];
+  
+  if (group.max_selection === 1) {
+    // Single choice
+    if (current === optName) {
+      // Deselect if not required
+      if (!group.is_required) {
+        selectedCustomizations.value[groupName] = '';
+      }
+    } else {
+      selectedCustomizations.value[groupName] = optName;
+    }
+  } else {
+    // Multiple choice
+    const idx = current.indexOf(optName);
+    if (idx > -1) {
+      current.splice(idx, 1);
+    } else {
+      if (!group.max_selection || current.length < group.max_selection) {
+        current.push(optName);
+      }
+    }
+  }
+};
+const getOptionPriceLabel = (group, opt) => {
+  const itemSurcharge = opt.price_adjustment || 0;
+  const extraPrice = group.extra_selection_price || 0;
+  const freeCount = group.free_selection_count || 0;
+  
+  if (itemSurcharge <= 0 && extraPrice <= 0) return '';
+
+  const selected = selectedCustomizations.value[group.group_name];
+  const selectedList = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+  const isSelected = selectedList.includes(opt.name);
+  
+  // 計算邏輯：
+  // 1. 如果有 itemSurcharge，它一定會被加 (顯示為基礎加價)
+  // 2. 如果選取總數會超過/已超過 freeCount，則還要加上 extraPrice
+  
+  let displayPrice = itemSurcharge;
+  
+  if (isSelected) {
+    // 判斷這一項是否屬於「超額」的部分
+    const index = selectedList.indexOf(opt.name);
+    if (index >= freeCount) {
+      displayPrice += extraPrice;
+    }
+  } else {
+    // 預測：如果點下去，是否會觸發超額費？
+    if (selectedList.length >= freeCount) {
+      displayPrice += extraPrice;
+    }
+  }
+
+  return displayPrice > 0 ? `(+${displayPrice})` : '(+0)';
+};
 </script>
 
 <template>
@@ -102,7 +329,7 @@ const handleManualNameBlur = () => {
       <span>{{ editingOrderId ? '✏️ 編輯訂單' : '📝 我要點餐' }}</span>
     </h3>
     
-    <form @submit.prevent="emit('submit')" class="space-y-4">
+    <form @submit.prevent="emit('submit')" class="space-y-3">
       <div>
         <label class="block text-sm font-medium text-slate-400 mb-1">姓名</label>
         <div class="flex flex-wrap gap-2">
@@ -129,7 +356,19 @@ const handleManualNameBlur = () => {
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <!-- Toggle AI / Manual -->
+      <div v-if="hasAIMenu" class="flex justify-end -mt-2">
+        <button 
+          type="button" 
+          @click="isManualMode = !isManualMode"
+          class="text-xs text-blue-400 hover:text-blue-300 underline"
+        >
+          {{ isManualMode ? '💡 使用 AI 菜單點餐' : '✍️ 切換為手動輸入' }}
+        </button>
+      </div>
+
+      <!-- Manual Mode -->
+      <div v-if="isManualMode" class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-slate-400 mb-1">品項</label>
           <input 
@@ -151,14 +390,83 @@ const handleManualNameBlur = () => {
           >
         </div>
       </div>
+      
+      <!-- AI Menu Mode -->
+      <div v-else class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-400 mb-1">選擇品項</label>
+          <select 
+            v-model="selectedItemId"
+            required
+            class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">-- 請選擇品項 --</option>
+            <optgroup v-for="category in props.menuData.categories" :key="category.category_name" :label="category.category_name">
+              <option v-for="item in category.items" :key="item.item_id" :value="item.item_id">
+                {{ item.name }}
+              </option>
+            </optgroup>
+          </select>
+        </div>
+
+        <template v-if="currentMenuItem">
+          <!-- Sizes -->
+          <div v-if="currentMenuItem.sizes && currentMenuItem.sizes.length > 1">
+            <label class="block text-sm font-medium text-slate-400 mb-1">尺寸</label>
+            <div class="flex flex-wrap gap-2">
+              <label v-for="size in currentMenuItem.sizes" :key="size.label" class="cursor-pointer">
+                <input type="radio" :value="size.label" v-model="selectedSizeLabel" class="peer sr-only">
+                <div class="px-3 py-1.5 rounded-lg border border-slate-600 bg-slate-900/50 text-slate-300 peer-checked:bg-blue-600/20 peer-checked:border-blue-500 peer-checked:text-blue-400 text-sm transition-all">
+                  {{ size.label }} <span v-if="size.price">(${{ size.price }})</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Customizations -->
+          <div v-for="group in allCustomizationGroups" :key="group.group_name">
+            <label class="block text-sm font-medium text-slate-400 mb-1">
+              {{ group.group_name }} <span v-if="group.is_required" class="text-rose-400">*</span>
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <div 
+                v-for="opt in group.options" 
+                :key="opt.name" 
+                @click="toggleOption(group, opt.name)"
+                class="cursor-pointer px-3 py-1.5 rounded-lg border text-sm transition-all"
+                :class="isOptionSelected(group, opt.name) 
+                  ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
+                  : 'bg-slate-900/50 border-slate-600 text-slate-300 hover:border-slate-500'"
+              >
+                {{ opt.name }} <span class="opacity-70 text-xs ml-0.5">{{ getOptionPriceLabel(group, opt) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex justify-between items-center text-sm text-slate-400 pt-2 border-t border-slate-700">
+            <span>金額小計：</span>
+            <span class="text-xl font-bold text-green-400">${{ localPrice }}</span>
+          </div>
+        </template>
+      </div>
 
       <div>
-        <label class="block text-sm font-medium text-slate-400 mb-1">備註 (甜度冰塊、餐點特製)</label>
+        <label class="block text-sm font-medium text-slate-400 mb-1">
+          {{ isManualMode ? '備註 (甜度冰塊、餐點特製)' : '附加備註 (選填)' }}
+        </label>
         <input 
+          v-if="isManualMode"
           v-model="localNote"
           type="text" 
           class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
           placeholder="例如：微糖少冰、不要香菜"
+        >
+        <input 
+          v-else
+          v-model="manualUserNote"
+          type="text" 
+          class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+          placeholder="例如：不要香菜"
         >
       </div>
 

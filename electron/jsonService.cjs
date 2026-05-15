@@ -70,6 +70,38 @@ class JsonService {
     return null;
   }
 
+  // 取得解析好的菜單資料
+  getMenu(shopId) {
+    const menusDir = path.join(this.dataDir, "menus");
+    const filePath = path.join(menusDir, `${shopId}.json`);
+    if (!fs.existsSync(filePath)) {
+      return null;
+    }
+    try {
+      const data = fs.readFileSync(filePath, "utf-8");
+      return JSON.parse(data);
+    } catch (error) {
+      console.error(`Error reading menu ${shopId}.json:`, error);
+      return null;
+    }
+  }
+
+  // 儲存解析好的菜單資料
+  saveMenu(shopId, menuData) {
+    const menusDir = path.join(this.dataDir, "menus");
+    if (!fs.existsSync(menusDir)) {
+      fs.mkdirSync(menusDir, { recursive: true });
+    }
+    const filePath = path.join(menusDir, `${shopId}.json`);
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(menuData, null, 2), "utf-8");
+      return true;
+    } catch (error) {
+      console.error(`Error writing menu ${shopId}.json:`, error);
+      return false;
+    }
+  }
+
   // 取得訂單資料 (只讀取進行中的訂單)
   getOrders() {
     const data = this.read("orders.json");

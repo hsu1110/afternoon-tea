@@ -9,6 +9,7 @@ const triggerConfirm = inject('triggerConfirm');
 const activeSessions = ref([]);
 const selectedSessionId = ref(null);
 const menuImage = ref(null);
+const menuData = ref(null);
 const members = ref([]);
 const selectedMember = ref(null);
 const manualName = ref('');
@@ -89,6 +90,7 @@ const loadData = async () => {
 
     if (selectedSession.value) {
       loadMenuImage(selectedSession.value.shopId);
+      loadMenuData(selectedSession.value.shopId);
     }
   } catch (error) {
     console.error('Failed to load data:', error);
@@ -103,12 +105,22 @@ const loadMenuImage = async (shopId) => {
   }
 };
 
+const loadMenuData = async (shopId) => {
+  try {
+    menuData.value = await window.electronAPI.getMenu(shopId);
+  } catch (error) {
+    console.error('Failed to load menu data:', error);
+    menuData.value = null;
+  }
+};
+
 // 監聽 session 切換
 watch(selectedSessionId, (newId) => {
   if (newId) {
     const session = activeSessions.value.find(s => s.id === newId);
     if (session) {
       loadMenuImage(session.shopId);
+      loadMenuData(session.shopId);
       
       // 切換店家時，若非編輯狀態，先清空表單，確保能正確載入該店家的紀錄
       if (!editingOrderId.value) {
@@ -188,6 +200,9 @@ const submitOrder = async () => {
     
     // Reset form
     cancelEdit();
+    
+    // 成功送出後自動退出全螢幕菜單
+    isMenuModalOpen.value = false;
     
     await loadData();
   } catch (error) {
@@ -314,28 +329,6 @@ onMounted(() => {
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Right: Order Form & List -->
-        <div class="space-y-6">
-          
-          <!-- Order Form -->
-          <OrderForm
-            :members="members"
-            v-model:selectedMember="selectedMember"
-            v-model:manualName="manualName"
-            v-model:item="currentItem"
-            v-model:price="currentPrice"
-            v-model:note="currentNote"
-            v-model:isSelfPay="isSelfPay"
-            :is-submitting="isSubmitting"
-            :is-locked="isLocked"
-            :editing-order-id="editingOrderId"
-            @submit="submitOrder"
-            @cancel="cancelEdit"
-            @quick-fill="quickFillLastOrder"
-            class="sticky top-6"
-          />
 
           <!-- Current Orders List -->
           <div class="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
@@ -380,6 +373,29 @@ onMounted(() => {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Right: Order Form -->
+        <div class="space-y-6">
+          
+          <!-- Order Form -->
+          <OrderForm
+            :menu-data="menuData"
+            :members="members"
+            v-model:selectedMember="selectedMember"
+            v-model:manualName="manualName"
+            v-model:item="currentItem"
+            v-model:price="currentPrice"
+            v-model:note="currentNote"
+            v-model:isSelfPay="isSelfPay"
+            :is-submitting="isSubmitting"
+            :is-locked="isLocked"
+            :editing-order-id="editingOrderId"
+            @submit="submitOrder"
+            @cancel="cancelEdit"
+            @quick-fill="quickFillLastOrder"
+            class="sticky top-6"
+          />
 
         </div>
       </div>
@@ -392,6 +408,7 @@ onMounted(() => {
     >
       <template #sidebar>
         <OrderForm
+          :menu-data="menuData"
           :members="members"
           v-model:selectedMember="selectedMember"
           v-model:manualName="manualName"
