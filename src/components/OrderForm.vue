@@ -155,6 +155,30 @@ watch(() => currentMenuItem.value?.item_id, (newId, oldId) => {
   }
 });
 
+let isInternalNoteUpdate = false;
+
+// 輔助函數：從完整備註字串中抽離出手動輸入的部分
+const parseManualNoteFromStr = (noteStr) => {
+  if (!noteStr) return '';
+  
+  // 優先尋找新的格式 "備註："
+  const manualLabel = '備註：';
+  const lastIndex = noteStr.lastIndexOf(manualLabel);
+  if (lastIndex !== -1) {
+    return noteStr.substring(lastIndex + manualLabel.length).trim();
+  }
+  
+  // 相容舊格式 [...]
+  const oldMatch = noteStr.match(/^\[(.*?)\]\s*(.*)$/);
+  if (oldMatch) return oldMatch[2];
+  
+  // 如果包含全形冒號但沒有"備註："，說明這整串可能都是系統標籤，沒有手動備註
+  if (noteStr.includes('：')) return '';
+  
+  // 完全沒標籤，則整串都是手動備註
+  return noteStr;
+};
+
 watch([currentMenuItem, selectedSizeLabel, selectedCustomizations, manualUserNote], () => {
   if (!currentMenuItem.value || isManualMode.value) return;
   
@@ -184,7 +208,6 @@ watch([currentMenuItem, selectedSizeLabel, selectedCustomizations, manualUserNot
     const freeCount = group.free_selection_count || 0;
     const extraPrice = group.extra_selection_price || 0;
     
-    // 1. 單項附加費
     opts.forEach((optName) => {
       const optDef = group.options.find(o => o.name === optName);
       if (optDef) {
@@ -192,45 +215,27 @@ watch([currentMenuItem, selectedSizeLabel, selectedCustomizations, manualUserNot
       }
     });
 
-    // 2. 超額數量費
     if (opts.length > freeCount) {
       price += (opts.length - freeCount) * extraPrice;
     }
 
-    // 將該群組內容加入備註，例如 "甜度: 半糖"
-    noteParts.push(`${groupName}： ${opts.join(', ')}`);
+    noteParts.push(`${groupName}：${opts.join(', ')}`);
   }
 
   if (manualUserNote.value) noteParts.push(`備註：${manualUserNote.value}`);
   
   localItem.value = item.name;
   localPrice.value = price;
+  
+  isInternalNoteUpdate = true;
   localNote.value = noteParts.join('、');
+  
+  setTimeout(() => { isInternalNoteUpdate = false; }, 0);
 }, { deep: true });
 
 watch(() => props.editingOrderId, (newVal) => {
   if (newVal) {
-    // When editing starts, populate manualUserNote from localNote
-    const noteStr = localNote.value || '';
-    
-    // 解析新格式: 尋找 "備註: " 之後的內容
-    const parts = noteStr.split(/ \| |、/);
-    const manualPart = parts.find(p => p.trim().startsWith('備註：'));
-    
-    if (manualPart) {
-      manualUserNote.value = manualPart.replace(/備註：\s*/, '').trim();
-    } else {
-      // 相容舊格式 [...]
-      const match = noteStr.match(/^\[(.*?)\]\s*(.*)$/);
-      if (match) {
-        manualUserNote.value = match[2];
-      } else if (noteStr.includes('規格：') || noteStr.includes('選項：')) {
-        // 如果只有規格或選項，說明備註是空的
-        manualUserNote.value = '';
-      } else {
-        manualUserNote.value = noteStr;
-      }
-    }
+    manualUserNote.value = parseManualNoteFromStr(localNote.value);
 
     if (props.menuData && props.menuData.categories) {
       let matchedItem = null;
@@ -240,17 +245,14 @@ watch(() => props.editingOrderId, (newVal) => {
           if (matchedItem) break;
         }
       }
-
       if (matchedItem) {
         isManualMode.value = false;
         selectedItemId.value = matchedItem.item_id;
-        // Parsing existing sizes/options from note is complex, skip for MVP. Users can re-select.
       } else {
         isManualMode.value = true;
       }
     }
   } else {
-    // Cancel edit or submit finish
     selectedItemId.value = '';
     manualUserNote.value = '';
     if (hasAIMenu.value) {
@@ -259,28 +261,10 @@ watch(() => props.editingOrderId, (newVal) => {
   }
 });
 
-// Also when localNote changes from outside (quick fill), update manualUserNote
 watch(localNote, (newVal) => {
-  if (!selectedItemId.value || isManualMode.value) return; 
+  if (isInternalNoteUpdate || !selectedItemId.value || isManualMode.value) return; 
   
-  const noteStr = newVal || '';
-  const parts = noteStr.split(/ \| |、/);
-  const manualPart = parts.find(p => p.trim().startsWith('備註：'));
-  
-  let extractedManual = '';
-  if (manualPart) {
-    extractedManual = manualPart.replace(/備註：\s*/, '').trim();
-  } else {
-    const match = noteStr.match(/^\[(.*?)\]\s*(.*)$/);
-    if (match) {
-      extractedManual = match[2];
-    } else if (noteStr.includes('規格：') || noteStr.includes('選項：')) {
-      extractedManual = '';
-    } else {
-      extractedManual = noteStr;
-    }
-  }
-
+  const extractedManual = parseManualNoteFromStr(newVal);
   if (manualUserNote.value !== extractedManual) {
     manualUserNote.value = extractedManual;
   }
