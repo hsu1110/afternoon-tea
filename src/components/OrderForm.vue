@@ -170,54 +170,66 @@ watch([currentMenuItem, selectedSizeLabel, selectedCustomizations, manualUserNot
     }
   }
 
-  const customTexts = [];
-    for (const groupName in selectedCustomizations.value) {
-      const selectedOptions = selectedCustomizations.value[groupName];
-      if (!selectedOptions || (Array.isArray(selectedOptions) && selectedOptions.length === 0)) continue;
-      
-      const group = allCustomizationGroups.value.find(g => g.group_name === groupName);
-      if (!group) continue;
+  const noteParts = [];
+  if (sizeText) noteParts.push(`規格：${sizeText}`);
+  
+  for (const groupName in selectedCustomizations.value) {
+    const selectedOptions = selectedCustomizations.value[groupName];
+    if (!selectedOptions || (Array.isArray(selectedOptions) && selectedOptions.length === 0)) continue;
+    
+    const group = allCustomizationGroups.value.find(g => g.group_name === groupName);
+    if (!group) continue;
 
-      const opts = Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions];
-      const freeCount = group.free_selection_count || 0;
-      const extraPrice = group.extra_selection_price || 0;
-      
-      // 1. 單項附加費
-      opts.forEach((optName) => {
-        const optDef = group.options.find(o => o.name === optName);
-        if (optDef) {
-          price += optDef.price_adjustment || 0;
-          customTexts.push(optName);
-        }
-      });
-
-      // 2. 超額數量費
-      if (opts.length > freeCount) {
-        price += (opts.length - freeCount) * extraPrice;
+    const opts = Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions];
+    const freeCount = group.free_selection_count || 0;
+    const extraPrice = group.extra_selection_price || 0;
+    
+    // 1. 單項附加費
+    opts.forEach((optName) => {
+      const optDef = group.options.find(o => o.name === optName);
+      if (optDef) {
+        price += optDef.price_adjustment || 0;
       }
+    });
+
+    // 2. 超額數量費
+    if (opts.length > freeCount) {
+      price += (opts.length - freeCount) * extraPrice;
     }
 
-  const generatedNoteParts = [];
-  if (sizeText) generatedNoteParts.push(sizeText);
-  if (customTexts.length > 0) generatedNoteParts.push(customTexts.join(', '));
-  
-  const generatedNoteStr = generatedNoteParts.length > 0 ? `[${generatedNoteParts.join(' | ')}] ` : '';
+    // 將該群組內容加入備註，例如 "甜度: 半糖"
+    noteParts.push(`${groupName}： ${opts.join(', ')}`);
+  }
+
+  if (manualUserNote.value) noteParts.push(`備註：${manualUserNote.value}`);
   
   localItem.value = item.name;
   localPrice.value = price;
-  localNote.value = `${generatedNoteStr}${manualUserNote.value}`.trim();
+  localNote.value = noteParts.join('、');
 }, { deep: true });
 
 watch(() => props.editingOrderId, (newVal) => {
   if (newVal) {
     // When editing starts, populate manualUserNote from localNote
-    // Try to separate generated part
     const noteStr = localNote.value || '';
-    const match = noteStr.match(/^\[(.*?)\]\s*(.*)$/);
-    if (match) {
-      manualUserNote.value = match[2];
+    
+    // 解析新格式: 尋找 "備註: " 之後的內容
+    const parts = noteStr.split(/ \| |、/);
+    const manualPart = parts.find(p => p.trim().startsWith('備註：'));
+    
+    if (manualPart) {
+      manualUserNote.value = manualPart.replace(/備註：\s*/, '').trim();
     } else {
-      manualUserNote.value = noteStr;
+      // 相容舊格式 [...]
+      const match = noteStr.match(/^\[(.*?)\]\s*(.*)$/);
+      if (match) {
+        manualUserNote.value = match[2];
+      } else if (noteStr.includes('規格：') || noteStr.includes('選項：')) {
+        // 如果只有規格或選項，說明備註是空的
+        manualUserNote.value = '';
+      } else {
+        manualUserNote.value = noteStr;
+      }
     }
 
     if (props.menuData && props.menuData.categories) {
@@ -249,10 +261,28 @@ watch(() => props.editingOrderId, (newVal) => {
 
 // Also when localNote changes from outside (quick fill), update manualUserNote
 watch(localNote, (newVal) => {
-  if (!selectedItemId.value) return; // Only care if AI menu is active
-  const match = (newVal || '').match(/^\[(.*?)\]\s*(.*)$/);
-  if (!match) {
-    if (manualUserNote.value !== newVal) manualUserNote.value = newVal || '';
+  if (!selectedItemId.value || isManualMode.value) return; 
+  
+  const noteStr = newVal || '';
+  const parts = noteStr.split(/ \| |、/);
+  const manualPart = parts.find(p => p.trim().startsWith('備註：'));
+  
+  let extractedManual = '';
+  if (manualPart) {
+    extractedManual = manualPart.replace(/備註：\s*/, '').trim();
+  } else {
+    const match = noteStr.match(/^\[(.*?)\]\s*(.*)$/);
+    if (match) {
+      extractedManual = match[2];
+    } else if (noteStr.includes('規格：') || noteStr.includes('選項：')) {
+      extractedManual = '';
+    } else {
+      extractedManual = noteStr;
+    }
+  }
+
+  if (manualUserNote.value !== extractedManual) {
+    manualUserNote.value = extractedManual;
   }
 });
 const isOptionSelected = (group, optName) => {
@@ -412,7 +442,7 @@ const getOptionPriceLabel = (group, opt) => {
         <template v-if="currentMenuItem">
           <!-- Sizes -->
           <div v-if="currentMenuItem.sizes && currentMenuItem.sizes.length > 1">
-            <label class="block text-sm font-medium text-slate-400 mb-1">尺寸</label>
+            <label class="block text-sm font-medium text-slate-400 mb-1">規格</label>
             <div class="flex flex-wrap gap-2">
               <label v-for="size in currentMenuItem.sizes" :key="size.label" class="cursor-pointer">
                 <input type="radio" :value="size.label" v-model="selectedSizeLabel" class="peer sr-only">
