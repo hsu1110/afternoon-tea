@@ -169,11 +169,9 @@ const confirmEdit = async () => {
 const copyGroupBuyText = (session) => {
   const deadlineTime = session.deadline ? new Date(session.deadline).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '無';
   const teaTimeText = session.teaTime ? new Date(session.teaTime).toLocaleString([], { month: '2-digit', day: '2-digit' }) : '無';
-  const hostText = session.hostName ? `負責人：${session.hostName}` : '';
   const text = `
 ${teaTimeText}下午茶！🎉
 店家：${session.shopName}
-${hostText}
 截止時間：${deadlineTime}
 
 請大家盡快點餐喔！
