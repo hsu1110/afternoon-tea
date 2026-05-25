@@ -491,12 +491,17 @@ onMounted(() => {
           <!-- Order Summary -->
           <div class="relative z-10 bg-slate-900/50 rounded-xl p-4 mb-6 max-h-48 overflow-y-auto custom-scrollbar">
             <ul class="space-y-2">
-              <li v-for="order in session.orders" :key="order.id" class="flex justify-between text-sm text-slate-300 border-b border-slate-700/50 pb-2 last:border-0 last:pb-0">
-                <span>
-                  {{ order.name }} - {{ order.item }}
-                  <span v-if="order.isSelfPay" class="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">自費</span>
-                </span>
-                <span class="font-mono" :class="order.isSelfPay ? 'text-slate-500 line-through' : ''">${{ order.price }}</span>
+              <li v-for="order in session.orders" :key="order.id" class="border-b border-slate-700/50 pb-2 last:border-0 last:pb-0">
+                <div class="flex justify-between text-sm text-slate-300">
+                  <span>
+                    {{ order.name }} - {{ order.item }}
+                    <span v-if="order.isSelfPay" class="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">自費</span>
+                  </span>
+                  <span class="font-mono" :class="order.isSelfPay ? 'text-slate-500 line-through' : ''">${{ order.price }}</span>
+                </div>
+                <div v-if="order.note" class="text-xs text-slate-500 mt-1 pl-4">
+                  ({{ order.note }})
+                </div>
               </li>
               <li v-if="session.orders.length === 0" class="text-center text-slate-500 py-4">
                 尚無訂單
