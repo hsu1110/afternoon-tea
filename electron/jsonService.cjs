@@ -325,7 +325,6 @@ class JsonService {
   }
 
   // 儲存店家 (新增或更新)
-  // 儲存店家 (新增或更新)
   saveShop(shop, imagePath) {
     const shops = this.read("shops.json") || [];
 

@@ -153,7 +153,7 @@ onMounted(() => {
               type="text" 
               required
               class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
-              placeholder="例如：George 儲值、買 50 嵐"
+              placeholder="例如：xxx 生日斗內、50 嵐"
             >
           </div>
 
@@ -236,7 +236,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Edit Modal -->
     <!-- Edit Modal -->
     <BaseModal 
       :is-open="showEditModal" 

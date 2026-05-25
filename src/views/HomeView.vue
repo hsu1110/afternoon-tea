@@ -357,7 +357,6 @@ onMounted(() => {
         </div>
 
         <!-- Result Modal -->
-        <!-- Result Modal -->
         <BaseModal :is-open="showResult" max-width="max-w-md" custom-class="p-8" @close="showResult = false">
           <div class="text-center">
             <div class="text-6xl mb-4 animate-bounce">🎉</div>
@@ -554,7 +553,6 @@ onMounted(() => {
     </div>
 
     <!-- Modals (Moved outside to ensure visibility) -->
-    <!-- Shop Selector Modal -->
     <!-- Shop Selector Modal -->
     <BaseModal :is-open="showShopSelector" max-width="max-w-2xl" custom-class="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar" @close="showShopSelector = false">
       <h3 class="text-2xl font-bold text-white mb-6 text-center">選擇店家</h3>
