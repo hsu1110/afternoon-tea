@@ -567,7 +567,7 @@ const crypto = require('crypto');
 ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKey }) => {
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const promptTemplate = fs.readFileSync(path.join(__dirname, 'prompt/prompt_new.md'), 'utf-8');
+    const promptTemplate = fs.readFileSync(path.join(__dirname, 'prompt/prompt.md'), 'utf-8');
 
     const userPromptStr = promptTemplate
       .replace(/{{shopName}}/g, shopName);
