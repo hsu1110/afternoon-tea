@@ -580,7 +580,7 @@ ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKe
     const base64Data = matches[2];
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.5-flash",
       generationConfig: {
         responseMimeType: "application/json",
       },
