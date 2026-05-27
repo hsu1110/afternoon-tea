@@ -227,7 +227,7 @@ onMounted(() => {
         >
           <span v-if="isScanning" class="animate-spin text-xl">⏳</span>
           <span v-else class="text-xl">✨</span>
-          {{ isScanning ? 'AI 正在努力辨識中 (約需 10~20 秒)...' : '開始 AI 辨識菜單' }}
+          {{ isScanning ? '正在努力辨識中... (約需 1~2 分鐘)' : '開始辨識菜單' }}
         </button>
       </div>
 
