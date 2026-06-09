@@ -1,5 +1,7 @@
 <script setup>
-import { ref, onMounted, inject } from 'vue';
+import { ref, onMounted, inject, computed } from 'vue';
+import CustomSelect from './CustomSelect.vue';
+import { Key, Eye, EyeOff, Store, Image as ImageIcon, Loader2, Scan, FileJson, Save } from 'lucide-vue-next';
 
 const triggerToast = inject('triggerToast');
 const triggerConfirm = inject('triggerConfirm');
@@ -10,6 +12,12 @@ const showKey = ref(false);
 
 const shops = ref([]);
 const selectedShopId = ref('');
+const shopOptions = computed(() => {
+  return shops.value.map(shop => ({
+    id: shop.id,
+    displayName: `${shop.name} (${shop.category === 'drink' ? '飲料' : '食物'})`
+  }));
+});
 const currentMenu = ref('');
 const currentImage = ref(null);
 const isScanning = ref(false);
@@ -139,26 +147,28 @@ onMounted(() => {
 <template>
   <div class="space-y-6">
     <!-- API Key 設定區塊 -->
-    <div class="bg-slate-800/80 backdrop-blur-md border border-slate-600 rounded-2xl p-6 shadow-xl">
-      <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        <span>🔑</span>API Key 設定
+    <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-6 shadow-xl">
+      <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2 tracking-tight">
+        <Key class="w-5.5 h-5.5 text-blue-400 stroke-[1.5]" />
+        <span>API Key 設定</span>
       </h3>
       <div class="flex gap-4 items-end">
         <div class="flex-1">
-          <label class="block text-sm font-medium text-slate-400 mb-2">API Key (僅儲存於此電腦)</label>
+          <label class="block text-sm font-normal text-slate-400 mb-2">API Key (僅儲存於此電腦)</label>
           <div class="relative">
             <input 
               v-model="apiKey"
               :type="showKey ? 'text' : 'password'" 
-              class="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-4 pr-12 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              class="w-full bg-slate-900/50 border border-slate-700/60 rounded-xl pl-4 pr-12 py-2.5 text-white placeholder-slate-550 focus:outline-none focus:border-blue-500 transition-all font-mono text-base font-normal shadow-sm"
               placeholder="AIzaSy..."
               :disabled="isKeySaved"
             >
             <button 
               @click="showKey = !showKey"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
             >
-              {{ showKey ? '🙈' : '👁️' }}
+              <EyeOff v-if="showKey" class="w-4.5 h-4.5" />
+              <Eye v-else class="w-4.5 h-4.5" />
             </button>
           </div>
         </div>
@@ -166,14 +176,14 @@ onMounted(() => {
           <button 
             v-if="!isKeySaved"
             @click="saveApiKey"
-            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-555 text-white border border-blue-500/10 rounded-xl font-normal text-base transition-colors shadow-lg shadow-blue-500/10"
           >
             儲存 Key
           </button>
           <button 
             v-else
             @click="deleteApiKey"
-            class="px-6 py-2.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg font-bold transition-colors"
+            class="px-6 py-2.5 bg-rose-600/20 text-rose-405 border border-rose-500/20 hover:bg-rose-600 hover:text-white rounded-xl font-normal text-base transition-colors"
           >
             清除 Key
           </button>
@@ -185,36 +195,34 @@ onMounted(() => {
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
       <!-- 左側：圖片與操作 -->
-      <div class="bg-slate-800/80 backdrop-blur-md border border-slate-600 rounded-2xl p-6 shadow-xl flex flex-col">
+      <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-6 shadow-xl flex flex-col">
         <div class="mb-4">
-          <label class="block text-sm font-medium text-slate-400 mb-2">選擇店家</label>
-          <select 
-            v-model="selectedShopId" 
+          <label class="block text-sm font-normal text-slate-400 mb-2">選擇店家</label>
+          <CustomSelect
+            v-model="selectedShopId"
+            :options="shopOptions"
+            option-label="displayName"
+            option-value="id"
+            placeholder="-- 請選擇店家 --"
             @change="onShopChange"
-            class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- 請選擇店家 --</option>
-            <option v-for="shop in shops" :key="shop.id" :value="shop.id">
-              {{ shop.name }} ({{ shop.category === 'drink' ? '飲料' : '食物' }})
-            </option>
-          </select>
+          />
         </div>
 
-        <div class="flex-1 min-h-[300px] border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden bg-slate-900/30">
+        <div class="flex-1 min-h-[300px] border-2 border-dashed border-slate-700/60 rounded-xl flex flex-col items-center justify-center p-4 relative overflow-hidden bg-slate-900/30">
           <template v-if="!selectedShopId">
-            <div class="text-slate-500 text-center">
-              <div class="text-3xl mb-2">🏪</div>
-              <p>請先選擇店家</p>
+            <div class="text-slate-500 text-center flex flex-col items-center justify-center">
+              <Store class="w-12 h-12 text-slate-650 mb-3 stroke-[1.5]" />
+              <p class="text-sm font-normal">請先選擇店家</p>
             </div>
           </template>
           <template v-else-if="currentImage">
             <img :src="currentImage" class="w-full h-full object-contain" />
           </template>
           <template v-else>
-            <div class="text-slate-500 text-center">
-              <div class="text-3xl mb-2">🖼️</div>
-              <p>此店家尚未上傳菜單圖片</p>
-              <p class="text-xs mt-1">請至「店家管理」上傳圖片</p>
+            <div class="text-slate-500 text-center flex flex-col items-center justify-center">
+              <ImageIcon class="w-12 h-12 text-slate-650 mb-3 stroke-[1.5]" />
+              <p class="text-sm font-normal">此店家尚未上傳菜單圖片</p>
+              <p class="text-xs text-slate-550 mt-1.5 leading-normal">請至「店家管理」上傳圖片</p>
             </div>
           </template>
         </div>
@@ -222,25 +230,26 @@ onMounted(() => {
         <button 
           @click="scanMenu"
           :disabled="!currentImage || !isKeySaved || isScanning"
-          class="mt-4 w-full py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all"
-          :class="(!currentImage || !isKeySaved || isScanning) ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg'"
+          class="mt-4 w-full py-3.5 rounded-xl font-normal text-base flex justify-center items-center gap-2 transition-all border border-transparent shadow-lg"
+          :class="(!currentImage || !isKeySaved || isScanning) ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border-slate-600/30' : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-550 hover:to-blue-555 text-white shadow-purple-500/10'"
         >
-          <span v-if="isScanning" class="animate-spin text-xl">⏳</span>
-          <span v-else class="text-xl">✨</span>
-          {{ isScanning ? '正在努力辨識中... (約需 1~2 分鐘)' : '開始辨識菜單' }}
+          <Loader2 v-if="isScanning" class="w-5 h-5 animate-spin" />
+          <Scan v-else class="w-5 h-5" />
+          <span>{{ isScanning ? '正在努力辨識中... (約需 1~2 分鐘)' : '開始辨識菜單' }}</span>
         </button>
       </div>
 
       <!-- 右側：JSON 編輯器 -->
-      <div class="bg-slate-800/80 backdrop-blur-md border border-slate-600 rounded-2xl p-6 shadow-xl flex flex-col">
+      <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-6 shadow-xl flex flex-col">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-white flex items-center gap-2">
-            <span>📝</span> 菜單資料 (JSON)
+          <h3 class="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+            <FileJson class="w-5.5 h-5.5 text-blue-400 stroke-[1.5]" />
+            <span>菜單資料 (JSON)</span>
           </h3>
           <div class="flex gap-2">
             <button 
               @click="formatJson"
-              class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-xs text-white rounded transition-colors"
+              class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-xs text-slate-200 rounded-lg transition-colors font-normal"
             >
               整理排版
             </button>
@@ -249,7 +258,7 @@ onMounted(() => {
 
         <textarea 
           v-model="currentMenu"
-          class="flex-1 w-full min-h-[400px] bg-slate-900/80 border border-slate-600 rounded-xl p-4 text-green-400 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"
+          class="flex-1 w-full min-h-[400px] bg-slate-900/60 border border-slate-700/60 rounded-xl p-4 text-emerald-400 font-mono text-base focus:outline-none focus:border-blue-500 transition-all custom-scrollbar font-normal"
           placeholder="這裡會顯示 AI 辨識後的 JSON 結構。您也可以手動修改這裡的內容..."
           spellcheck="false"
         ></textarea>
@@ -257,9 +266,10 @@ onMounted(() => {
         <button 
           @click="saveMenu"
           :disabled="!currentMenu.trim()"
-          class="mt-4 w-full py-3 rounded-xl font-bold transition-all disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed bg-green-600 hover:bg-green-500 text-white shadow-lg"
+          class="mt-4 w-full py-3.5 rounded-xl font-normal text-base transition-all disabled:bg-slate-700/50 disabled:text-slate-500 disabled:cursor-not-allowed bg-green-600 hover:bg-green-555 text-white shadow-lg border border-transparent flex items-center justify-center gap-2"
         >
-          💾 儲存菜單資料
+          <Save class="w-4.5 h-4.5" />
+          <span>儲存菜單資料</span>
         </button>
       </div>
 

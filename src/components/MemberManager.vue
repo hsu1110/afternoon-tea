@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue';
+import { Users, Pencil, Trash2, Wrench } from 'lucide-vue-next';
 
 const members = ref([]);
 const isEditing = ref(false);
@@ -68,34 +69,37 @@ onMounted(() => {
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
     <!-- Left: Member List -->
     <div class="lg:col-span-8">
-      <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-2xl p-6 shadow-xl">
-        <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-          <span>👥</span> 成員列表
+      <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700/60 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2 tracking-tight">
+          <Users class="w-6 h-6 text-blue-400 stroke-[1.5]" />
+          <span>成員列表</span>
         </h2>
         
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div 
             v-for="member in members" 
             :key="member.id"
-            class="bg-slate-700/30 p-4 rounded-xl border border-slate-600/50 hover:border-blue-500/50 transition-all group relative flex flex-col items-center justify-center text-center"
+            class="bg-slate-700/20 p-5 rounded-xl border border-slate-700/50 hover:border-blue-500/30 hover:bg-slate-700/25 transition-all group relative flex flex-col items-center justify-center text-center"
           >
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl mb-3 shadow-lg">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-normal text-xl mb-3 shadow-lg">
               {{ member.name[0] }}
             </div>
-            <h3 class="font-bold text-lg text-white mb-1">{{ member.name }}</h3>
+            <h3 class="font-normal text-lg text-white mb-1">{{ member.name }}</h3>
             
-            <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="absolute top-2.5 right-2.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button 
                 @click="editMember(member)"
-                class="p-1.5 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
+                class="p-1.5 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-colors border border-blue-500/10"
+                title="編輯"
               >
-                ✏️
+                <Pencil class="w-3.5 h-3.5" />
               </button>
               <button 
                 @click="deleteMember(member.id)"
-                class="p-1.5 bg-rose-600/20 text-rose-400 rounded-lg hover:bg-rose-600 hover:text-white transition-colors"
+                class="p-1.5 bg-rose-600/20 text-rose-400 rounded-lg hover:bg-rose-600 hover:text-white transition-colors border border-rose-500/10"
+                title="刪除"
               >
-                🗑️
+                <Trash2 class="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -105,19 +109,20 @@ onMounted(() => {
 
     <!-- Right: Edit Form -->
     <div class="lg:col-span-4">
-      <div class="bg-slate-800/80 backdrop-blur-md border border-slate-600 rounded-2xl p-6 shadow-2xl sticky top-6">
-        <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-          <span>🛠️</span> {{ isEditing ? '編輯成員' : '新增成員' }}
+      <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-6 shadow-2xl sticky top-6">
+        <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2 tracking-tight">
+          <Wrench class="w-5.5 h-5.5 text-blue-400 stroke-[1.5]" />
+          <span>{{ isEditing ? '編輯成員' : '新增成員' }}</span>
         </h3>
         
         <form @submit.prevent="saveMember" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-slate-400 mb-1">姓名</label>
+            <label class="block text-sm font-normal text-slate-400 mb-1.5">姓名</label>
             <input 
               v-model="editingMember.name"
               type="text" 
               required
-              class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+              class="w-full bg-slate-900/50 border border-slate-700/60 rounded-xl px-4 py-2.5 text-white placeholder-slate-550 focus:outline-none focus:border-blue-500 transition-all text-base font-normal shadow-sm" 
               placeholder="例如：Benson"
             >
           </div>
@@ -127,13 +132,13 @@ onMounted(() => {
               v-if="isEditing"
               type="button"
               @click="resetForm"
-              class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-colors"
+              class="flex-1 py-3 bg-slate-700 hover:bg-slate-655 text-white border border-slate-600 rounded-xl font-normal text-base transition-colors"
             >
               取消
             </button>
             <button 
               type="submit"
-              class="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transform hover:-translate-y-0.5 transition-all duration-200"
+              class="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-550 hover:to-indigo-550 text-white rounded-xl font-normal text-base shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 transform hover:-translate-y-0.5 transition-all duration-200"
             >
               {{ isEditing ? '儲存修改' : '新增成員' }}
             </button>

@@ -1,5 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
+import { User, ShoppingBag, DollarSign, FileText, Keyboard, Coins, Pencil } from 'lucide-vue-next';
+import CustomSelect from './CustomSelect.vue';
 
 const props = defineProps({
   menuData: {
@@ -110,8 +112,8 @@ const hasAIMenu = computed(() => {
   return props.menuData.categories && props.menuData.categories.length > 0;
 });
 
-watch(() => props.menuData, () => {
-  isManualMode.value = !hasAIMenu.value;
+watch(hasAIMenu, (newVal) => {
+  isManualMode.value = !newVal;
 }, { immediate: true });
 
 const currentMenuItem = computed(() => {
@@ -338,68 +340,78 @@ const getOptionPriceLabel = (group, opt) => {
 </script>
 
 <template>
-  <div class="bg-slate-800/80 backdrop-blur-md border border-slate-600 rounded-2xl p-6 shadow-xl">
-    <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-      <span>{{ editingOrderId ? '✏️ 編輯訂單' : '📝 我要點餐' }}</span>
+  <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-6 shadow-xl">
+    <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2 tracking-tight">
+      <Pencil v-if="editingOrderId" class="w-5 h-5 text-blue-400 stroke-[1.5]" />
+      <span>{{ editingOrderId ? '編輯訂單' : '我要點餐' }}</span>
     </h3>
     
-    <form @submit.prevent="emit('submit')" class="space-y-3">
+    <form @submit.prevent="emit('submit')" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-slate-400 mb-1">姓名</label>
-        <div class="flex flex-wrap gap-2">
-          <select 
+        <label class="block text-sm font-normal text-slate-300 mb-2 flex items-center gap-1.5">
+          <User class="w-4 h-4 text-blue-400" />
+          <span>姓名</span>
+        </label>
+        <div class="space-y-2">
+          <!-- Custom Dropdown for selecting member -->
+          <CustomSelect
             v-model="localSelectedMember"
-            @change="handleMemberChange"
-            class="flex-1 min-w-[130px] bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            :options="members"
+            option-label="name"
+            placeholder="-- 選擇成員 --"
             :disabled="!!editingOrderId"
-          >
-            <option :value="null">-- 選擇成員 --</option>
-            <option v-for="member in members" :key="member.id" :value="member">
-              {{ member.name }}
-            </option>
-          </select>
+            @change="handleMemberChange"
+          />
           <input 
             v-if="!localSelectedMember"
             v-model="localManualName"
             @blur="handleManualNameBlur"
             type="text" 
-            class="flex-1 min-w-[130px] bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" 
-            placeholder="手動輸入姓名"
+            class="w-full bg-slate-900/50 border border-slate-700/60 rounded-xl px-3.5 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all font-normal text-base shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+            placeholder="請輸入您的姓名 (手動輸入)"
             :disabled="!!editingOrderId"
           >
         </div>
       </div>
 
-      <!-- Toggle AI / Manual -->
-      <div v-if="hasAIMenu" class="flex justify-end -mt-2">
+      <!-- Toggle AI / Manual Button -->
+      <div v-if="hasAIMenu" class="flex justify-end -mt-1 pb-1 select-none">
         <button 
           type="button" 
           @click="isManualMode = !isManualMode"
-          class="text-xs text-blue-400 hover:text-blue-300 underline"
+          class="text-xs font-normal bg-slate-900/50 hover:bg-slate-700/60 border border-slate-700/60 text-slate-300 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm hover:text-white"
         >
-          {{ isManualMode ? '💡 使用 AI 菜單點餐' : '✍️ 切換為手動輸入' }}
+          <Keyboard v-if="!isManualMode" class="w-3.5 h-3.5 text-blue-400" />
+          <ShoppingBag v-else class="w-3.5 h-3.5 text-emerald-400" />
+          <span>{{ isManualMode ? '使用 AI 菜單點餐' : '切換為手動輸入' }}</span>
         </button>
       </div>
 
       <!-- Manual Mode -->
-      <div v-if="isManualMode" class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-400 mb-1">品項</label>
+      <div v-if="isManualMode" class="grid grid-cols-2 gap-3.5">
+        <div class="space-y-1.5">
+          <label class="block text-sm font-normal text-slate-300 flex items-center gap-1.5">
+            <ShoppingBag class="w-4 h-4 text-indigo-400" />
+            <span>品項</span>
+          </label>
           <input 
             v-model="localItem"
             type="text" 
             required
-            class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+            class="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all font-normal text-base shadow-sm" 
             placeholder="例如：珍珠奶茶"
           >
         </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-400 mb-1">價格</label>
+        <div class="space-y-1.5">
+          <label class="block text-sm font-normal text-slate-300 flex items-center gap-1.5">
+            <DollarSign class="w-4 h-4 text-emerald-400" />
+            <span>價格</span>
+          </label>
           <input 
             v-model="localPrice"
             type="number" 
             required
-            class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+            class="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all font-normal text-base shadow-sm" 
             placeholder="50"
           >
         </div>
@@ -407,108 +419,120 @@ const getOptionPriceLabel = (group, opt) => {
       
       <!-- AI Menu Mode -->
       <div v-else class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-400 mb-1">選擇品項</label>
-          <select 
+        <div class="space-y-1.5">
+          <label class="block text-sm font-normal text-slate-300 flex items-center gap-1.5">
+            <ShoppingBag class="w-4 h-4 text-indigo-400" />
+            <span>選擇品項</span>
+          </label>
+          
+          <!-- Custom Dropdown for selecting item -->
+          <CustomSelect
             v-model="selectedItemId"
-            required
-            class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- 請選擇品項 --</option>
-            <optgroup v-for="category in props.menuData.categories" :key="category.category_name" :label="category.category_name">
-              <option v-for="item in category.items" :key="item.item_id" :value="item.item_id">
-                {{ item.name }}
-              </option>
-            </optgroup>
-          </select>
+            :groups="props.menuData.categories"
+            group-label="category_name"
+            group-items="items"
+            option-label="name"
+            option-value="item_id"
+            placeholder="-- 請選擇品項 --"
+          />
         </div>
 
         <template v-if="currentMenuItem">
           <!-- Sizes -->
-          <div v-if="currentMenuItem.sizes && currentMenuItem.sizes.length > 1">
-            <label class="block text-sm font-medium text-slate-400 mb-1">規格</label>
+          <div v-if="currentMenuItem.sizes && currentMenuItem.sizes.length > 1" class="space-y-1.5">
+            <label class="block text-sm font-normal text-slate-350">規格</label>
             <div class="flex flex-wrap gap-2">
               <label v-for="size in currentMenuItem.sizes" :key="size.label" class="cursor-pointer">
                 <input type="radio" :value="size.label" v-model="selectedSizeLabel" class="peer sr-only">
-                <div class="px-3 py-1.5 rounded-lg border border-slate-600 bg-slate-900/50 text-slate-300 peer-checked:bg-blue-600/20 peer-checked:border-blue-500 peer-checked:text-blue-400 text-sm transition-all">
-                  {{ size.label }} <span v-if="size.price">(${{ size.price }})</span>
+                <div class="px-3.5 py-1.5 rounded-xl border border-slate-700/60 bg-slate-900/40 text-slate-300 peer-checked:bg-blue-500/10 peer-checked:border-blue-500/40 peer-checked:text-blue-300 text-sm font-normal shadow-sm transition-all">
+                  {{ size.label }} <span v-if="size.price" class="text-xs opacity-75">(${{ size.price }})</span>
                 </div>
               </label>
             </div>
           </div>
 
           <!-- Customizations -->
-          <div v-for="group in allCustomizationGroups" :key="group.group_name">
-            <label class="block text-sm font-medium text-slate-400 mb-1">
+          <div v-for="group in allCustomizationGroups" :key="group.group_name" class="space-y-1.5">
+            <label class="block text-sm font-normal text-slate-350">
               {{ group.group_name }} <span v-if="group.is_required" class="text-rose-400">*</span>
             </label>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-1.5">
               <div 
                 v-for="opt in group.options" 
                 :key="opt.name" 
                 @click="toggleOption(group, opt.name)"
-                class="cursor-pointer px-3 py-1.5 rounded-lg border text-sm transition-all"
+                class="cursor-pointer px-3.5 py-1.5 rounded-xl border text-sm font-normal shadow-sm transition-all"
                 :class="isOptionSelected(group, opt.name) 
-                  ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
-                  : 'bg-slate-900/50 border-slate-600 text-slate-300 hover:border-slate-500'"
+                  ? 'bg-blue-500/10 border-blue-500/40 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.08)]' 
+                  : 'bg-slate-900/40 border-slate-750 text-slate-300 hover:border-slate-655'"
               >
                 {{ opt.name }} <span class="opacity-70 text-xs ml-0.5">{{ getOptionPriceLabel(group, opt) }}</span>
               </div>
             </div>
           </div>
           
-          <div class="flex justify-between items-center text-sm text-slate-400 pt-2 border-t border-slate-700">
+          <div class="flex justify-between items-center text-sm text-slate-300 pt-3 border-t border-slate-700/50">
             <span>金額小計：</span>
-            <span class="text-xl font-bold text-green-400">${{ localPrice }}</span>
+            <span class="text-2xl font-normal text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.15)] font-mono">${{ localPrice }}</span>
           </div>
         </template>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium text-slate-400 mb-1">
-          {{ isManualMode ? '備註 (甜度冰塊、餐點特製)' : '附加備註 (選填)' }}
+      <div class="space-y-1.5">
+        <label class="block text-sm font-normal text-slate-300 flex items-center gap-1.5">
+          <FileText class="w-4 h-4 text-amber-400 fill-amber-500/10" />
+          <span>{{ isManualMode ? '備註 (甜度冰塊、餐點特製)' : '附加備註 (選填)' }}</span>
         </label>
         <input 
           v-if="isManualMode"
           v-model="localNote"
           type="text" 
-          class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+          class="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all font-normal text-base shadow-sm" 
           placeholder="例如：微糖少冰、不要香菜"
         >
         <input 
           v-else
           v-model="manualUserNote"
           type="text" 
-          class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+          class="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all font-normal text-base shadow-sm" 
           placeholder="例如：不要香菜"
         >
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5 pt-1.5 pb-0.5 select-none">
         <input 
           type="checkbox" 
           id="isSelfPay" 
           v-model="localIsSelfPay"
-          class="w-5 h-5 rounded border-slate-600 text-blue-600 focus:ring-blue-500 bg-slate-900/50"
+          class="w-5 h-5 rounded bg-slate-900/50 cursor-pointer transition-all focus:ring-amber-500 text-amber-500"
+          :class="localIsSelfPay ? 'border-amber-500/50' : 'border-slate-650'"
         >
-        <label for="isSelfPay" class="text-slate-300 select-none cursor-pointer">
-          💰 自費 (不計入公費)
+        <label 
+          for="isSelfPay" 
+          class="text-base select-none cursor-pointer transition-all flex items-center gap-2"
+          :class="localIsSelfPay ? 'text-amber-300' : 'text-slate-300 hover:text-white font-normal'"
+        >
+          <Coins 
+            class="w-4.5 h-4.5 transition-all" 
+            :class="localIsSelfPay ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.35)]' : 'text-slate-400'" 
+          />
+          <span>自費 (不計入公費)</span>
         </label>
       </div>
 
-      <div class="flex gap-3">
+      <div class="flex gap-3 pt-2">
         <button 
           v-if="editingOrderId"
           type="button"
           @click="emit('cancel')"
-          class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-colors"
+          class="flex-1 py-3 bg-slate-800/80 hover:bg-slate-700 border border-slate-750 text-slate-350 hover:text-white rounded-xl transition-all shadow-md text-base font-normal"
         >
           取消
         </button>
         <button 
           type="submit"
           :disabled="isSubmitting || isLocked"
-          class="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-green-500/20 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          class="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-xl shadow-lg shadow-emerald-500/15 transform hover:-translate-y-0.5 transition-all duration-250 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none text-base font-normal"
         >
           {{ isLocked ? '已截止' : (isSubmitting ? '處理中...' : (editingOrderId ? '更新訂單' : '送出訂單')) }}
         </button>
@@ -516,3 +540,15 @@ const getOptionPriceLabel = (group, opt) => {
     </form>
   </div>
 </template>
+
+<style scoped>
+.custom-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 1.15rem;
+}
+</style>

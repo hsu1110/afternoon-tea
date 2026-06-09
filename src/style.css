@@ -2,36 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.5);
-  border-radius: 4px;
+
+/* Global Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.8);
-  border-radius: 4px;
+::-webkit-scrollbar-track {
+  background: transparent;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.8);
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Element Plus Dark Theme Overrides */
 html.dark {
   /* Backgrounds */
-  --el-bg-color: #0f172a; /* slate-900 */
-  --el-bg-color-overlay: #1e293b; /* slate-800 */
-  --el-fill-color-blank: #0f172a; /* slate-900 */
+  --el-bg-color: #1e2538;
+  --el-bg-color-overlay: #272e42;
+  --el-fill-color-blank: #1e2538;
 
   /* Borders */
-  --el-border-color: #334155; /* slate-700 */
-  --el-border-color-light: #334155;
-  --el-border-color-lighter: #334155;
+  --el-border-color: rgba(255, 255, 255, 0.1);
+  --el-border-color-light: rgba(255, 255, 255, 0.08);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.06);
 
   /* Text */
-  --el-text-color-primary: #f1f5f9; /* slate-100 */
+  --el-text-color-primary: #f8fafc; /* slate-50 */
   --el-text-color-regular: #cbd5e1; /* slate-300 */
   --el-text-color-secondary: #94a3b8; /* slate-400 */
 
@@ -48,13 +61,13 @@ html.dark {
 /* Date Picker Customization */
 .el-date-editor.el-input,
 .el-date-editor.el-input__wrapper {
-  --el-input-bg-color: rgba(30, 41, 59, 0.5); /* slate-800/50 */
-  --el-input-border-color: #475569; /* slate-600 */
-  --el-input-hover-border-color: #3b82f6; /* blue-500 */
-  --el-input-focus-border-color: #3b82f6;
+  --el-input-bg-color: rgba(255, 255, 255, 0.05);
+  --el-input-border-color: rgba(255, 255, 255, 0.15);
+  --el-input-hover-border-color: #60a5fa;
+  --el-input-focus-border-color: #60a5fa;
   box-shadow: none !important;
   border: 1px solid var(--el-input-border-color);
-  border-radius: 0.75rem; /* rounded-xl */
+  border-radius: 0.75rem;
 }
 
 .el-input__wrapper {
@@ -64,28 +77,26 @@ html.dark {
 
 .el-input__inner {
   color: white !important;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: bold;
 }
 
-/* Remove default shadow and use border instead */
 .el-input__wrapper.is-focus {
-  box-shadow: 0 0 0 1px #3b82f6 !important;
-  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px #60a5fa !important;
+  border-color: #60a5fa !important;
 }
 
 /* Popup Styling */
 .el-picker-panel {
-  background-color: #1e293b !important; /* slate-800 */
-  border: 1px solid #334155 !important; /* slate-700 */
-  border-radius: 1rem !important; /* rounded-2xl */
+  background-color: #272e42 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 1rem !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
 }
 
 .el-picker-panel__footer {
-  background-color: #0f172a !important; /* slate-900 */
-  border-top: 1px solid #334155 !important;
+  background-color: #1e2538 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 .el-date-table td.current:not(.disabled) .el-date-table-cell__text {
@@ -97,8 +108,8 @@ html.dark {
 }
 
 .el-time-panel {
-  background-color: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background-color: #272e42 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 .el-time-spinner__item {
@@ -110,7 +121,7 @@ html.dark {
 }
 
 .el-time-spinner__item:hover:not(.is-disabled):not(.is-active) {
-  background-color: #334155 !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .el-button--text {

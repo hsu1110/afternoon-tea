@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   isOpen: {
@@ -160,6 +160,33 @@ const handleImageClick = async (e) => {
 const close = () => {
   emit('close');
 };
+
+let modalId = null;
+
+const register = () => {
+  if (props.isOpen && !modalId) {
+    modalId = window.registerModal(() => close());
+  }
+};
+
+const unregister = () => {
+  if (modalId) {
+    window.unregisterModal(modalId);
+    modalId = null;
+  }
+};
+
+watch(() => props.isOpen, (newVal) => {
+  if (newVal) {
+    register();
+  } else {
+    unregister();
+  }
+}, { immediate: true });
+
+onUnmounted(() => {
+  unregister();
+});
 </script>
 
 <template>

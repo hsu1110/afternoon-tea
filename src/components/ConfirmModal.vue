@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
+import { AlertTriangle, Info, Coins, Trash2, AlertCircle } from 'lucide-vue-next';
 
 const props = defineProps({
   title: {
@@ -34,6 +35,18 @@ const handleConfirm = () => {
 const handleCancel = () => {
   emit('cancel');
 };
+
+let modalId = null;
+
+onMounted(() => {
+  modalId = window.registerModal(() => handleCancel());
+});
+
+onUnmounted(() => {
+  if (modalId) {
+    window.unregisterModal(modalId);
+  }
+});
 </script>
 
 <template>
@@ -46,7 +59,7 @@ const handleCancel = () => {
       
       <!-- Header -->
       <div class="p-6 pb-0 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+        <div class="w-10 h-10 rounded-full flex items-center justify-center"
           :class="{
             'bg-amber-500/20 text-amber-500': type === 'warning',
             'bg-blue-500/20 text-blue-500': type === 'info',
@@ -54,10 +67,11 @@ const handleCancel = () => {
             'bg-green-500/20 text-green-500': type === 'success'
           }"
         >
-          <span v-if="type === 'warning'">⚠️</span>
-          <span v-else-if="type === 'info'">ℹ️</span>
-          <span v-else-if="type === 'success'">💰</span>
-          <span v-else>🗑️</span>
+          <AlertTriangle v-if="type === 'warning'" class="w-5 h-5 stroke-[1.8]" />
+          <Info v-else-if="type === 'info'" class="w-5 h-5 stroke-[1.8]" />
+          <Coins v-else-if="type === 'success'" class="w-5 h-5 stroke-[1.8]" />
+          <Trash2 v-else-if="type === 'danger'" class="w-5 h-5 stroke-[1.8]" />
+          <AlertCircle v-else class="w-5 h-5 stroke-[1.8]" />
         </div>
         <h3 class="text-xl font-bold text-white">{{ title }}</h3>
       </div>
@@ -77,7 +91,7 @@ const handleCancel = () => {
         </button>
         <button 
           @click="handleConfirm"
-          class="px-4 py-2 rounded-lg font-bold text-white shadow-lg transition-all transform hover:-translate-y-0.5"
+          class="px-4 py-2 rounded-lg font-normal text-white shadow-lg transition-all transform hover:-translate-y-0.5"
           :class="{
             'bg-amber-600 hover:bg-amber-500 shadow-amber-500/20': type === 'warning',
             'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20': type === 'info',

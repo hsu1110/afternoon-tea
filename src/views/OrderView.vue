@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted, computed, inject, watch, nextTick } from 'vue';
+import { ref, onMounted, computed, inject, watch, nextTick, onUnmounted } from 'vue';
+import { Clock, Lock, Maximize2, Edit2, Trash2, Coffee } from 'lucide-vue-next';
 import ZoomableImageModal from '../components/ZoomableImageModal.vue';
 import OrderForm from '../components/OrderForm.vue';
 
@@ -21,6 +22,28 @@ const isSelfPay = ref(false);
 const isSubmitting = ref(false);
 const isMenuModalOpen = ref(false);
 const editingOrderId = ref(null);
+
+const editModalId = ref(null);
+watch(editingOrderId, (newId) => {
+  if (newId) {
+    if (window.registerModal) {
+      editModalId.value = window.registerModal(() => {
+        cancelEdit();
+      });
+    }
+  } else if (editModalId.value) {
+    if (window.unregisterModal) {
+      window.unregisterModal(editModalId.value);
+    }
+    editModalId.value = null;
+  }
+});
+
+onUnmounted(() => {
+  if (editModalId.value && window.unregisterModal) {
+    window.unregisterModal(editModalId.value);
+  }
+});
 
 const selectedSession = computed(() => {
   return activeSessions.value.find(s => s.id === selectedSessionId.value);
@@ -275,10 +298,17 @@ onMounted(() => {
   <div class="max-w-4xl mx-auto">
     
     <!-- No Active Session -->
-    <div v-if="activeSessions.length === 0" class="text-center py-20">
-      <div class="text-6xl mb-6 animate-bounce">😴</div>
-      <h2 class="text-2xl font-bold text-white mb-2">目前沒有進行中的訂購</h2>
-      <p class="text-slate-400">請稍後再回來查看，或通知主持人開團！</p>
+    <div v-if="activeSessions.length === 0" class="text-center py-20 flex flex-col items-center justify-center">
+      <div class="p-8 bg-slate-800/40 border border-slate-700/60 rounded-3xl shadow-xl backdrop-blur-md mb-6 max-w-sm w-full mx-auto relative overflow-hidden group">
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <div class="relative z-10 flex flex-col items-center">
+          <div class="p-4 bg-slate-900/60 border border-slate-700/50 rounded-2xl mb-4 text-slate-500 group-hover:text-blue-400 group-hover:border-blue-500/30 transition-all duration-300">
+            <Coffee class="w-10 h-10 stroke-[1.5] animate-pulse" />
+          </div>
+          <h2 class="text-lg font-bold text-white mb-2 tracking-tight">目前沒有進行中的訂購</h2>
+          <p class="text-xs text-slate-405 leading-relaxed">請稍後再回來查看，或通知主持人發起下午茶開團！</p>
+        </div>
+      </div>
     </div>
 
     <div v-else>
@@ -288,13 +318,20 @@ onMounted(() => {
           v-for="session in activeSessions" 
           :key="session.id"
           @click="selectedSessionId = session.id"
-          class="px-6 py-3 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-2"
+          class="px-5 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-2 border text-base"
           :class="selectedSessionId === session.id 
-            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105' 
-            : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'"
+            ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/15' 
+            : 'bg-slate-800 border-slate-700 text-slate-350 hover:bg-slate-700 hover:text-white'"
         >
           <span>{{ session.shopName }}</span>
-          <span class="text-xs bg-black/20 px-2 py-0.5 rounded-full">{{ session.orders.length }}</span>
+          <span 
+            class="text-xs px-2 py-0.5 rounded-full font-semibold transition-all"
+            :class="selectedSessionId === session.id 
+              ? 'bg-white/20 text-white' 
+              : 'bg-slate-700 text-slate-400'"
+          >
+            {{ session.orders.length }}
+          </span>
         </button>
       </div>
 
@@ -302,73 +339,81 @@ onMounted(() => {
         
         <!-- Left: Menu & Info -->
         <div class="space-y-6">
-          <div class="bg-slate-800/80 backdrop-blur-md border border-slate-600 rounded-2xl p-6 shadow-xl">
-            <h2 class="text-2xl font-bold text-white mb-4 flex justify-between items-center">
+          <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-xl font-bold text-white mb-4 flex justify-between items-center">
               <span>{{ selectedSession.shopName }} 菜單</span>
-              <span v-if="selectedSession.deadline" class="text-sm font-mono px-3 py-1 rounded-full" 
-                :class="isLocked ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'">
-                {{ timeLeft }}
+              <span v-if="selectedSession.deadline" class="text-xs font-mono px-3 py-1.5 rounded-xl border flex items-center gap-1 font-semibold" 
+                :class="isLocked 
+                  ? 'bg-red-500/10 border-red-500/20 text-red-400' 
+                  : 'bg-amber-500/10 border-amber-500/20 text-amber-400'">
+                <Clock class="w-3.5 h-3.5" :class="!isLocked && 'animate-pulse'" />
+                <span>{{ timeLeft }}</span>
               </span>
             </h2>
             
             <!-- Menu Image -->
             <div 
-              class="aspect-[3/4] bg-slate-900/50 rounded-xl overflow-hidden border border-slate-700 relative group cursor-zoom-in"
+              class="aspect-[3/4] bg-slate-900/40 rounded-xl overflow-hidden border border-slate-700/60 relative group cursor-zoom-in shadow-inner"
               @click="isMenuModalOpen = true"
             >
               <img v-if="menuImage" :src="menuImage" class="w-full h-full object-contain hover:scale-105 transition-transform duration-500" alt="Menu">
-              <div v-else class="w-full h-full flex items-center justify-center text-slate-500">
-                尚無菜單圖片
+              <div v-else class="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-2 font-medium">
+                <Maximize2 class="w-8 h-8 text-slate-600" />
+                <span class="text-sm">尚無菜單圖片</span>
               </div>
               
               <!-- Hint overlay -->
-              <div v-if="menuImage" class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <span class="bg-black/50 text-white px-4 py-2 rounded-full backdrop-blur-sm text-sm font-bold">
-                  點擊放大
+              <div v-if="menuImage" class="absolute inset-0 bg-black/0 group-hover:bg-slate-950/45 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-300">
+                <span class="bg-blue-600/90 text-white px-4 py-2 rounded-xl backdrop-blur-md text-xs font-bold shadow-lg shadow-blue-500/20 flex items-center gap-1.5 transform scale-95 group-hover:scale-100 transition-all duration-300">
+                  <Maximize2 class="w-3.5 h-3.5" />
+                  <span>點擊放大菜單</span>
                 </span>
               </div>
             </div>
           </div>
 
           <!-- Current Orders List -->
-          <div class="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
-            <h3 class="text-lg font-bold text-white mb-4">
+          <div class="bg-slate-800/40 backdrop-blur-md border border-slate-700/60 rounded-2xl p-6 shadow-md">
+            <h3 class="text-base font-bold text-white mb-4 tracking-tight">
               {{ selectedSession.shopName }} 的訂單 ({{ selectedSession.orders.length }})
             </h3>
             
-            <div class="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+            <div class="space-y-2.5 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
               <div v-for="order in selectedSession.orders" :key="order.id" 
-                class="bg-slate-900/80 p-3 rounded-lg border border-slate-700/50 flex justify-between items-center group hover:border-slate-600 transition-colors"
+                class="bg-slate-900/30 px-3.5 py-3 rounded-xl border border-slate-800/80 hover:border-slate-700/60 flex justify-between items-center group hover:bg-slate-900/50 transition-all duration-200"
               >
                 <div>
-                  <div class="font-bold text-white text-sm flex items-center gap-2">
-                    {{ order.name }}
-                    <span v-if="order.isSelfPay" class="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/30">自費</span>
+                  <div class="font-bold text-slate-200 text-sm flex items-center gap-1.5">
+                    <span>{{ order.name }}</span>
+                    <span v-if="order.isSelfPay" class="text-[10px] font-bold bg-amber-500/10 border border-amber-500/25 text-amber-400 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 select-none">自費</span>
                   </div>
-                  <div class="text-xs text-slate-400">{{ order.item }} <span v-if="order.note" class="text-slate-500">({{ order.note }})</span></div>
+                  <div class="text-xs text-slate-400 mt-0.5 font-medium">
+                    {{ order.item }}
+                    <span v-if="order.note" class="text-slate-500 font-normal"> ({{ order.note }})</span>
+                  </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="font-mono font-bold text-sm mr-2" :class="order.isSelfPay ? 'text-slate-500 line-through' : 'text-green-400'">${{ order.price }}</span>
+                  <span class="font-mono font-bold text-sm mr-2" :class="order.isSelfPay ? 'text-slate-500 line-through' : 'text-emerald-400'">${{ order.price }}</span>
                   <button 
                     @click="editOrder(order)"
                     :disabled="isLocked"
-                    class="p-1.5 bg-blue-600/20 text-blue-400 rounded hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600/20 disabled:hover:text-blue-400"
+                    class="p-1.5 bg-blue-500/5 border border-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                     title="編輯"
                   >
-                    ✏️
+                    <Edit2 class="w-3.5 h-3.5" />
                   </button>
                   <button 
                     @click="deleteOrder(order.id)"
                     :disabled="isLocked"
-                    class="p-1.5 bg-rose-600/20 text-rose-400 rounded hover:bg-rose-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-600/20 disabled:hover:text-rose-400"
+                    class="p-1.5 bg-red-500/5 border border-red-500/20 text-red-400 rounded-lg hover:bg-red-600 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                     title="刪除"
                   >
-                    🗑️
+                    <Trash2 class="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
               
-              <div v-if="selectedSession.orders.length === 0" class="text-center text-slate-500 py-4 text-sm">
+              <div v-if="selectedSession.orders.length === 0" class="text-center text-slate-500 py-8 text-xs font-semibold">
                 還沒有人點餐，搶頭香！
               </div>
             </div>

@@ -373,7 +373,7 @@ const createWindow = () => {
     width: 1200,
     height: 800,
     icon: path.join(__dirname, '../public/icon.png'),
-    frame: false, // Frameless window
+    frame: true, // Enable native frame for Aero Snap
     titleBarStyle: 'hidden', // Hide title bar but keep controls overlay (we will build custom controls)
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

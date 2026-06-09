@@ -1,5 +1,6 @@
 <script setup>
-import { ref, provide, onMounted } from 'vue';
+import { ref, provide, onMounted, onUnmounted } from 'vue';
+import { Home, Coffee, History, CircleDollarSign, Settings, RefreshCw, Cookie } from 'lucide-vue-next';
 import ConfirmModal from './components/ConfirmModal.vue';
 import TitleBar from './components/TitleBar.vue';
 import UpdateModal from './components/UpdateModal.vue';
@@ -19,6 +20,38 @@ const updateInfo = ref({
 const downloadProgress = ref(0);
 const isDownloading = ref(false);
 
+// Global Modal Stack & ESC key management
+window.__activeModals = window.__activeModals || [];
+window.registerModal = (closeFn) => {
+  const id = Symbol('modal');
+  window.__activeModals.push({ id, close: closeFn });
+  return id;
+};
+window.unregisterModal = (id) => {
+  window.__activeModals = window.__activeModals.filter(m => m.id !== id);
+};
+
+const handleEscKey = (e) => {
+  if (e.key === 'Escape') {
+    // 1. Input focus check: if focused on input/textarea, blur it first
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      activeEl.blur();
+      return;
+    }
+
+    // 2. Modal stack check: close topmost modal
+    if (window.__activeModals && window.__activeModals.length > 0) {
+      const topmost = window.__activeModals[window.__activeModals.length - 1];
+      topmost.close();
+      return;
+    }
+
+    // 3. No modals: close/hide main app window
+    window.electronAPI.close();
+  }
+};
+
 onMounted(async () => {
   try {
     const ver = await window.electronAPI.getAppVersion();
@@ -37,6 +70,12 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to get app version', e);
   }
+
+  window.addEventListener('keydown', handleEscKey);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscKey);
 });
 
 const checkUpdate = async (isAutoCheck = false) => {
@@ -141,12 +180,9 @@ provide('triggerConfirm', triggerConfirm);
 
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <h1 class="logo-title">
-          <span class="text-3xl">🎡</span>
-          <span class="logo-text">下午茶</span>
-        </h1>
-        <p class="logo-subtitle">Afternoon Tea</p>
+      <div class="sidebar-header flex items-center gap-3">
+        <Coffee class="w-8 h-8 text-indigo-400 fill-indigo-500/10" />
+        <span class="logo-text text-2xl font-black tracking-wider">TEA TIME</span>
       </div>
 
       <nav class="sidebar-nav">
@@ -155,7 +191,7 @@ provide('triggerConfirm', triggerConfirm);
           class="nav-link group"
           active-class="nav-link-active"
         >
-          <span class="nav-icon group-hover:scale-110">🏠</span>
+          <Home class="nav-icon text-blue-400 fill-blue-500/10 group-hover:scale-110" />
           <span class="font-medium">首頁</span>
         </router-link>
         
@@ -164,7 +200,7 @@ provide('triggerConfirm', triggerConfirm);
           class="nav-link group"
           active-class="nav-link-active"
         >
-          <span class="nav-icon group-hover:scale-110">📝</span>
+          <Cookie class="nav-icon text-emerald-400 fill-emerald-500/10 group-hover:scale-110" />
           <span class="font-medium">點餐</span>
         </router-link>
         
@@ -173,7 +209,7 @@ provide('triggerConfirm', triggerConfirm);
           class="nav-link group"
           active-class="nav-link-active"
         >
-          <span class="nav-icon group-hover:scale-110">📜</span>
+          <History class="nav-icon text-violet-400 fill-violet-500/10 group-hover:scale-110" />
           <span class="font-medium">紀錄</span>
         </router-link>
 
@@ -182,7 +218,7 @@ provide('triggerConfirm', triggerConfirm);
           class="nav-link group"
           active-class="nav-link-active"
         >
-          <span class="nav-icon group-hover:scale-110">💰</span>
+          <CircleDollarSign class="nav-icon text-amber-400 fill-amber-500/10 group-hover:scale-110" />
           <span class="font-medium">財務</span>
         </router-link>
         
@@ -191,24 +227,25 @@ provide('triggerConfirm', triggerConfirm);
           class="nav-link group"
           active-class="nav-link-active"
         >
-          <span class="nav-icon group-hover:scale-110">⚙️</span>
+          <Settings class="nav-icon text-rose-400 fill-rose-500/10 group-hover:scale-110" />
           <span class="font-medium">管理</span>
         </router-link>
       </nav>
 
       <div class="p-4">
         <div class="version-card">
-          <div class="text-xs text-slate-500 mb-1">目前版本</div>
-          <div class="flex items-center justify-between">
-            <div class="text-sm font-mono text-slate-300">{{ appVersion }}</div>
-            <button 
-              @click="() => checkUpdate(false)"
-              class="update-btn"
-              title="檢查更新"
-            >
-              <span>🔄</span> 更新
-            </button>
+          <div class="flex justify-between items-center text-xs mb-3">
+            <span class="text-slate-400 font-medium">系統版本</span>
+            <span class="text-indigo-300 font-mono font-bold bg-indigo-500/15 px-2.5 py-0.5 rounded-full border border-indigo-500/20">{{ appVersion }}</span>
           </div>
+          <button 
+            @click="() => checkUpdate(false)"
+            class="update-btn group w-full justify-center"
+            title="檢查更新"
+          >
+            <RefreshCw class="w-3.5 h-3.5 text-indigo-400 group-hover:text-white transition-transform duration-700 group-hover:rotate-180" />
+            <span>檢查更新</span>
+          </button>
         </div>
       </div>
     </aside>
@@ -263,7 +300,7 @@ provide('triggerConfirm', triggerConfirm);
 
 <style scoped>
 .app-container {
-  @apply min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white flex flex-col;
+  @apply h-screen overflow-hidden bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white flex flex-col;
 }
 
 /* Background Effects */
@@ -307,18 +344,28 @@ provide('triggerConfirm', triggerConfirm);
   @apply bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-blue-900/20 border border-white/10;
 }
 .nav-icon {
-  @apply text-xl transition-transform;
+  @apply w-5 h-5 transition-transform;
+}
+.nav-link-active .nav-icon {
+  filter: drop-shadow(0 0 6px currentColor);
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 15s linear infinite;
 }
 .version-card {
   @apply bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-white/5;
 }
 .update-btn {
-  @apply text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1;
+  @apply text-xs bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white px-2.5 py-1.5 rounded-lg border border-indigo-500/20 hover:border-indigo-500/40 transition-all flex items-center gap-1.5 font-bold;
 }
 
 /* Main Content */
 .main-content {
-  @apply ml-64 mt-10 relative z-10 min-h-[calc(100vh-2.5rem)];
+  @apply ml-64 mt-10 relative z-10 h-[calc(100vh-2.5rem)] overflow-y-auto;
 }
 .content-wrapper {
   @apply p-8 md:p-12 max-w-7xl mx-auto;

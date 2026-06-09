@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, watch } from 'vue';
+import { onUnmounted, watch } from 'vue';
 
 const props = defineProps({
   isOpen: {
@@ -18,18 +18,31 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
-const handleKeydown = (e) => {
-  if (e.key === 'Escape' && props.isOpen) {
-    emit('close');
+let modalId = null;
+
+const register = () => {
+  if (props.isOpen && !modalId) {
+    modalId = window.registerModal(() => emit('close'));
   }
 };
 
-onMounted(() => {
-  window.addEventListener('keydown', handleKeydown);
-});
+const unregister = () => {
+  if (modalId) {
+    window.unregisterModal(modalId);
+    modalId = null;
+  }
+};
+
+watch(() => props.isOpen, (newVal) => {
+  if (newVal) {
+    register();
+  } else {
+    unregister();
+  }
+}, { immediate: true });
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown);
+  unregister();
 });
 </script>
 
