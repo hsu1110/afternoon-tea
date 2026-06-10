@@ -1,8 +1,8 @@
 {
   "name": "afternoon_tea",
   "private": true,
-  "version": "1.2.2",
-  "releaseNotes": "1. 新增菜單辨識功能，不需要再手動輸入菜單內容\n 2. 調整匯出格式\n 3. 統一變數名稱\n 4. 修正備註輸入與顯示的錯誤",
+  "version": "1.3.0",
+  "releaseNotes": "1. UI全面升級\n 2. 替換icon\n 3. 修正訂單顯示問題\n 4. 調整scrollbar位置及顏色",
   "author": "George",
   "description": "下午茶",
   "type": "module",

@@ -174,7 +174,10 @@ onMounted(() => {
             
             <div class="mt-4 flex justify-between items-center pt-3 border-t border-slate-700/30">
               <span class="text-xs text-slate-500">權重: {{ shop.weight }}</span>
-              <span class="text-xs text-slate-500" :class="shop.category === 'drink' ? 'text-blue-400/70' : 'text-orange-400/70'">
+              <span 
+                class="px-2.5 py-1 rounded-md text-xs border" 
+                :class="shop.category === 'drink' ? 'bg-blue-600/30 text-blue-300 border-blue-500/20' : 'bg-orange-600/30 text-orange-300 border-orange-500/20'"
+              >
                 {{ shop.category === 'drink' ? '飲料' : '食物' }}
               </span>
             </div>
