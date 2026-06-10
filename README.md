@@ -44,13 +44,14 @@
 
 - **資料路徑設定**：初次執行時可選擇資料儲存位置。支援指向 **網路磁碟機** 或 **雲端同步資料夾** (如 Dropbox/Google Drive)，輕鬆實現辦公室多人共用資料。
 - **深色模式**：預設採用深色主題，護眼又時尚。
+- **全向量化無 Emoji 精緻設計 (v1.3.0+)**：全面移除系統原生的表情符號（Emoji），採用統一風格的 Lucide 向量圖示；搭配客製化捲軸與下拉選單，介面視覺更流暢且一致。
 
 ## 🚀 安裝說明
 
 本程式提供 Windows 版本，安裝後即可使用。
 
 1. **下載安裝檔**：
-    - `下午茶 Setup 1.0.0.exe` (安裝版)
+    - `下午茶 Setup 1.3.0.exe` (安裝版)
 2. **安裝位置**：
     - 預設安裝於使用者目錄：`%LOCALAPPDATA%\Programs\Afternoon Tea Wheel`
 3. **資料儲存**：
@@ -139,6 +140,9 @@ npm run electron:build
     - `MemberManager.vue`: 成員管理元件。
     - `ZoomableImageModal.vue`: 圖片放大檢視元件。
     - `CustomDatePicker.vue`: 自訂日期選擇器。
+    - `CustomSelect.vue`: 自訂下拉選擇選單。
+    - `ConfirmModal.vue`: 自訂確認視窗。
+    - `UpdateModal.vue`: 系統升級視窗。
     - `TitleBar.vue`: 自訂視窗標題列。
   - `router/`: 路由設定。
 
