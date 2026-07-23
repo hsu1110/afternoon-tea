@@ -144,16 +144,61 @@ const allCustomizationGroups = computed(() => {
   return Array.from(mergedMap.values());
 });
 
+// 輔助函數：從完整備註字串中還原規格與客製化選項狀態
+const restoreStateFromNote = (noteStr, item) => {
+  if (!item) return;
+
+  // 1. 還原規格 (Size)
+  let matchedSize = '';
+  if (noteStr && item.sizes) {
+    const sizeMatch = noteStr.match(/規格：([^、]+)/);
+    if (sizeMatch) {
+      const parsedSize = sizeMatch[1].trim();
+      if (item.sizes.some(s => s.label === parsedSize)) {
+        matchedSize = parsedSize;
+      }
+    }
+  }
+  if (!matchedSize && item.sizes && item.sizes.length > 0) {
+    matchedSize = item.sizes[0].label;
+  }
+  selectedSizeLabel.value = matchedSize;
+
+  // 2. 初始化與還原所有客製化群組 (Customizations)
+  const globalCustoms = props.menuData?.global_customizations || [];
+  const itemCustoms = item.item_specific_customizations || [];
+  const mergedMap = new Map();
+  globalCustoms.forEach(g => mergedMap.set(g.group_name, g));
+  itemCustoms.forEach(g => mergedMap.set(g.group_name, g));
+  const groups = Array.from(mergedMap.values());
+
+  const initCustoms = {};
+  groups.forEach(g => {
+    initCustoms[g.group_name] = g.max_selection === 1 ? '' : [];
+  });
+
+  if (noteStr) {
+    groups.forEach(g => {
+      const reg = new RegExp(`${g.group_name}：([^、]+)`);
+      const match = noteStr.match(reg);
+      if (match) {
+        const rawOpts = match[1].split(',').map(s => s.trim()).filter(Boolean);
+        const validOpts = rawOpts.filter(optName => g.options?.some(o => o.name === optName));
+        if (g.max_selection === 1) {
+          initCustoms[g.group_name] = validOpts[0] || '';
+        } else {
+          initCustoms[g.group_name] = validOpts;
+        }
+      }
+    });
+  }
+
+  selectedCustomizations.value = initCustoms;
+};
+
 watch(() => currentMenuItem.value?.item_id, (newId, oldId) => {
   if (newId && newId !== oldId && !props.editingOrderId) {
-    const item = currentMenuItem.value;
-    selectedSizeLabel.value = (item.sizes && item.sizes.length > 0) ? item.sizes[0].label : '';
-    
-    const initCustoms = {};
-    allCustomizationGroups.value.forEach(g => {
-      initCustoms[g.group_name] = g.max_selection === 1 ? '' : [];
-    });
-    selectedCustomizations.value = initCustoms;
+    restoreStateFromNote('', currentMenuItem.value);
   }
 });
 
@@ -250,6 +295,7 @@ watch(() => props.editingOrderId, (newVal) => {
       if (matchedItem) {
         isManualMode.value = false;
         selectedItemId.value = matchedItem.item_id;
+        restoreStateFromNote(localNote.value, matchedItem);
       } else {
         isManualMode.value = true;
       }
@@ -281,6 +327,9 @@ const isOptionSelected = (group, optName) => {
 
 const toggleOption = (group, optName) => {
   const groupName = group.group_name;
+  if (selectedCustomizations.value[groupName] === undefined) {
+    selectedCustomizations.value[groupName] = group.max_selection === 1 ? '' : [];
+  }
   const current = selectedCustomizations.value[groupName];
   
   if (group.max_selection === 1) {
@@ -295,12 +344,16 @@ const toggleOption = (group, optName) => {
     }
   } else {
     // Multiple choice
-    const idx = current.indexOf(optName);
+    if (!Array.isArray(current)) {
+      selectedCustomizations.value[groupName] = [];
+    }
+    const arr = selectedCustomizations.value[groupName];
+    const idx = arr.indexOf(optName);
     if (idx > -1) {
-      current.splice(idx, 1);
+      arr.splice(idx, 1);
     } else {
-      if (!group.max_selection || current.length < group.max_selection) {
-        current.push(optName);
+      if (!group.max_selection || arr.length < group.max_selection) {
+        arr.push(optName);
       }
     }
   }

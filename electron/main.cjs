@@ -561,10 +561,165 @@ ipcMain.handle('delete-api-key', () => {
   return { success: true };
 });
 
+ipcMain.handle('get-selected-model', () => {
+  const config = loadConfig();
+  return config.selectedModel || 'gemini-3.6-flash';
+});
+
+ipcMain.handle('save-selected-model', (event, modelName) => {
+  const config = loadConfig();
+  config.selectedModel = modelName;
+  saveConfig(config);
+  return { success: true };
+});
+
+ipcMain.handle('get-cached-models', () => {
+  const config = loadConfig();
+  return config.cachedModels || null;
+});
+
+ipcMain.handle('save-cached-models', (event, models) => {
+  const config = loadConfig();
+  config.cachedModels = models;
+  saveConfig(config);
+  return { success: true };
+});
+
+ipcMain.handle('get-model-usage', () => {
+  return jsonService.getModelUsage();
+});
+
+ipcMain.handle('clear-model-usage', () => {
+  return jsonService.clearModelUsage();
+});
+
+// 版本號排序輔助方法 (最新版本在最前)
+const extractModelVersion = (id) => {
+  const match = id.match(/gemini-(\d+(?:\.\d+)?)/i);
+  return match ? parseFloat(match[1]) : 0;
+};
+
+const sortModelsNewestFirst = (modelsList) => {
+  return modelsList.sort((a, b) => {
+    const verA = extractModelVersion(a.id);
+    const verB = extractModelVersion(b.id);
+    if (verB !== verA) {
+      return verB - verA; // 版本高的在前 (如 3.6 > 3.5 > 3.1 > 2.5)
+    }
+    // 同版本下，正式版放在 preview 前面
+    const isPrevA = a.id.includes('preview');
+    const isPrevB = b.id.includes('preview');
+    if (isPrevA !== isPrevB) {
+      return isPrevA ? 1 : -1;
+    }
+    return a.id.localeCompare(b.id);
+  });
+};
+
+ipcMain.handle('fetch-available-models', async (event, apiKey) => {
+  return new Promise((resolve) => {
+    try {
+      const keyToUse = (apiKey && apiKey.trim()) || loadConfig().geminiApiKey;
+      if (!keyToUse) {
+        return resolve({ success: false, message: '請先設定或輸入 API Key' });
+      }
+
+      const https = require('https');
+      const options = {
+        hostname: 'generativelanguage.googleapis.com',
+        path: `/v1beta/models?key=${encodeURIComponent(keyToUse)}`,
+        method: 'GET',
+        headers: {
+          'x-goog-api-key': keyToUse,
+          'User-Agent': 'AfternoonTeaApp/1.0'
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              const data = JSON.parse(body);
+              if (data && Array.isArray(data.models)) {
+                let validModels = data.models
+                  .filter(m => {
+                    const id = (m.name || '').replace(/^models\//, '').toLowerCase();
+                    const hasGen = Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent');
+                    if (!hasGen) return false;
+
+                    // 過濾掉圖片生成 (image/banana)、語音 (tts/lyria)、機器人 (robotics)、電腦操作 (computer-use) 與專用模型
+                    const isSpecialized = 
+                      id.includes('image') || 
+                      id.includes('banana') || 
+                      id.includes('tts') || 
+                      id.includes('lyria') || 
+                      id.includes('robotics') || 
+                      id.includes('computer-use') || 
+                      id.includes('deep-research') || 
+                      id.includes('antigravity') || 
+                      id.includes('embedding') || 
+                      id.includes('imagen') || 
+                      id.includes('veo') || 
+                      id.includes('aqa') ||
+                      id.includes('customtools');
+
+                    return !isSpecialized && (id.startsWith('gemini-') || id.includes('flash') || id.includes('pro'));
+                  })
+                  .map(m => {
+                    const id = m.name.replace(/^models\//, '');
+                    return {
+                      id,
+                      label: `${m.displayName || id} (${id})`
+                    };
+                  });
+                
+                if (validModels.length > 0) {
+                  // 最新版本在最前排序
+                  validModels = sortModelsNewestFirst(validModels);
+                  
+                  // 持久化寫入 config.json 快取
+                  const config = loadConfig();
+                  config.cachedModels = validModels;
+                  saveConfig(config);
+
+                  return resolve({ success: true, models: validModels });
+                }
+              }
+              return resolve({ success: false, message: '未找到可用的 Gemini 菜單模型' });
+            } catch (e) {
+              return resolve({ success: false, message: '解析回應 JSON 失敗: ' + e.message });
+            }
+          } else {
+            try {
+              const errObj = JSON.parse(body);
+              const errMsg = errObj.error?.message || `HTTP Error ${res.statusCode}`;
+              return resolve({ success: false, message: errMsg });
+            } catch (e) {
+              return resolve({ success: false, message: `HTTP Error ${res.statusCode}` });
+            }
+          }
+        });
+      });
+
+      req.on('error', (e) => {
+        resolve({ success: false, message: '網路連線失敗: ' + e.message });
+      });
+
+      req.end();
+    } catch (error) {
+      resolve({ success: false, message: error.message });
+    }
+  });
+});
+
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const crypto = require('crypto');
 
-ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKey }) => {
+ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKey, model: requestedModel }) => {
+  const config = loadConfig();
+  const selectedModel = requestedModel || config.selectedModel || 'gemini-3.6-flash';
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const promptTemplate = fs.readFileSync(path.join(__dirname, 'prompt/prompt.md'), 'utf-8');
@@ -580,7 +735,7 @@ ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKe
     const base64Data = matches[2];
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-3.5-flash",
+      model: selectedModel,
       generationConfig: {
         responseMimeType: "application/json",
       },
@@ -597,6 +752,20 @@ ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKe
       { inlineData: { data: base64Data, mimeType: mimeType } }
     ]);
 
+    const usageMeta = result.response.usageMetadata || {};
+    const promptTokens = usageMeta.promptTokenCount || usageMeta.promptTokens || 0;
+    const candidateTokens = usageMeta.candidatesTokenCount || usageMeta.candidatesTokens || 0;
+    const totalTokens = usageMeta.totalTokenCount || usageMeta.totalTokens || 0;
+
+    jsonService.recordModelUsage({
+      model: selectedModel,
+      shopName,
+      promptTokens,
+      candidateTokens,
+      totalTokens,
+      success: true
+    });
+
     const parsedData = JSON.parse(result.response.text());
     
     parsedData.shop_id = shopId;
@@ -611,9 +780,15 @@ ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKe
       });
     }
 
-    return { success: true, data: parsedData };
+    return { success: true, data: parsedData, usage: { promptTokens, candidateTokens, totalTokens, model: selectedModel } };
   } catch (error) {
     console.error('Gemini API Error:', error);
+    jsonService.recordModelUsage({
+      model: selectedModel,
+      shopName,
+      success: false,
+      error: error.message
+    });
     return { success: false, message: error.message };
   }
 });

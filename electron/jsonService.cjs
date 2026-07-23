@@ -578,6 +578,70 @@ class JsonService {
     const newMembers = members.filter((m) => m.id !== id);
     return this.write("members.json", newMembers);
   }
+
+  // 取得 AI 模型用量數據
+  getModelUsage() {
+    return this.read("model_usage.json") || {
+      models: {},
+      history: []
+    };
+  }
+
+  // 記錄 AI 模型用量
+  recordModelUsage(usageEntry) {
+    const data = this.getModelUsage();
+    const { model, shopName, promptTokens = 0, candidateTokens = 0, totalTokens = 0, success = true, error = null } = usageEntry;
+    
+    if (!data.models[model]) {
+      data.models[model] = {
+        totalCalls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        promptTokens: 0,
+        candidateTokens: 0,
+        totalTokens: 0
+      };
+    }
+    
+    const m = data.models[model];
+    m.totalCalls += 1;
+    if (success) {
+      m.successfulCalls += 1;
+      m.promptTokens += promptTokens;
+      m.candidateTokens += candidateTokens;
+      m.totalTokens += totalTokens;
+    } else {
+      m.failedCalls += 1;
+    }
+
+    if (!Array.isArray(data.history)) {
+      data.history = [];
+    }
+    data.history.unshift({
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      model,
+      shopName,
+      promptTokens,
+      candidateTokens,
+      totalTokens,
+      success,
+      error
+    });
+    if (data.history.length > 100) {
+      data.history = data.history.slice(0, 100);
+    }
+
+    this.write("model_usage.json", data);
+    return data;
+  }
+
+  // 重置 AI 模型用量數據
+  clearModelUsage() {
+    const emptyData = { models: {}, history: [] };
+    this.write("model_usage.json", emptyData);
+    return emptyData;
+  }
 }
 
 module.exports = JsonService;
