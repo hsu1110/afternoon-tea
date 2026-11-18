@@ -579,6 +579,31 @@ class JsonService {
     return this.write("members.json", newMembers);
   }
 
+  // 取得公用目錄的 AI 可用模型清單
+  getAiModels() {
+    const data = this.read("ai_models.json");
+    if (!data) {
+      return { models: [], updatedAt: null };
+    }
+    if (Array.isArray(data)) {
+      return { models: data, updatedAt: null };
+    }
+    return {
+      models: Array.isArray(data.models) ? data.models : [],
+      updatedAt: data.updatedAt || null
+    };
+  }
+
+  // 儲存並覆蓋公用目錄的 AI 可用模型清單
+  saveAiModels(models) {
+    const payload = {
+      models: Array.isArray(models) ? models : [],
+      updatedAt: new Date().toISOString()
+    };
+    this.write("ai_models.json", payload);
+    return payload;
+  }
+
   // 取得 AI 模型用量數據
   getModelUsage() {
     return this.read("model_usage.json") || {

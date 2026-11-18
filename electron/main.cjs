@@ -563,7 +563,7 @@ ipcMain.handle('delete-api-key', () => {
 
 ipcMain.handle('get-selected-model', () => {
   const config = loadConfig();
-  return config.selectedModel || 'gemini-3.6-flash';
+  return config.selectedModel || '';
 });
 
 ipcMain.handle('save-selected-model', (event, modelName) => {
@@ -574,15 +574,11 @@ ipcMain.handle('save-selected-model', (event, modelName) => {
 });
 
 ipcMain.handle('get-cached-models', () => {
-  const config = loadConfig();
-  return config.cachedModels || null;
+  return jsonService.getAiModels();
 });
 
 ipcMain.handle('save-cached-models', (event, models) => {
-  const config = loadConfig();
-  config.cachedModels = models;
-  saveConfig(config);
-  return { success: true };
+  return jsonService.saveAiModels(models);
 });
 
 ipcMain.handle('get-model-usage', () => {
@@ -593,125 +589,218 @@ ipcMain.handle('clear-model-usage', () => {
   return jsonService.clearModelUsage();
 });
 
-// 版本號排序輔助方法 (最新版本在最前)
-const extractModelVersion = (id) => {
-  const match = id.match(/gemini-(\d+(?:\.\d+)?)/i);
-  return match ? parseFloat(match[1]) : 0;
+// 解析版本號為 [major, minor] 整數元組（避免浮點數誤判 3.10 < 3.6）
+const extractModelVersionTuple = (id) => {
+  const match = id.match(/gemini-(\d+)(?:\.(\d+))?/i);
+  if (!match) return [0, 0];
+  return [parseInt(match[1], 10), match[2] ? parseInt(match[2], 10) : 0];
 };
 
+// 依版本號由新到舊排序：正式使用中優先於棄用、正式版優先於 preview
 const sortModelsNewestFirst = (modelsList) => {
   return modelsList.sort((a, b) => {
-    const verA = extractModelVersion(a.id);
-    const verB = extractModelVersion(b.id);
-    if (verB !== verA) {
-      return verB - verA; // 版本高的在前 (如 3.6 > 3.5 > 3.1 > 2.5)
+    const [majA, minA] = extractModelVersionTuple(a.id);
+    const [majB, minB] = extractModelVersionTuple(b.id);
+    if (majB !== majA) return majB - majA;
+    if (minB !== minA) return minB - minA;
+
+    if (Boolean(a.deprecated) !== Boolean(b.deprecated)) {
+      return a.deprecated ? 1 : -1;
     }
-    // 同版本下，正式版放在 preview 前面
+
     const isPrevA = a.id.includes('preview');
     const isPrevB = b.id.includes('preview');
     if (isPrevA !== isPrevB) {
       return isPrevA ? 1 : -1;
     }
+
     return a.id.localeCompare(b.id);
   });
 };
 
-ipcMain.handle('fetch-available-models', async (event, apiKey) => {
-  return new Promise((resolve) => {
-    try {
-      const keyToUse = (apiKey && apiKey.trim()) || loadConfig().geminiApiKey;
-      if (!keyToUse) {
-        return resolve({ success: false, message: '請先設定或輸入 API Key' });
+// 共用 HTTPS GET（含逾時與 3xx 重導向處理）
+const httpsGetText = (urlStr, headers = {}, timeoutMs = 10000, redirectsLeft = 3) => {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const parsed = new URL(urlStr);
+    const req = https.request({
+      hostname: parsed.hostname,
+      path: `${parsed.pathname}${parsed.search}`,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'AfternoonTeaApp/1.0',
+        ...headers
       }
-
-      const https = require('https');
-      const options = {
-        hostname: 'generativelanguage.googleapis.com',
-        path: `/v1beta/models?key=${encodeURIComponent(keyToUse)}`,
-        method: 'GET',
-        headers: {
-          'x-goog-api-key': keyToUse,
-          'User-Agent': 'AfternoonTeaApp/1.0'
-        }
-      };
-
-      const req = https.request(options, (res) => {
-        let body = '';
-        res.on('data', chunk => body += chunk);
-        res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            try {
-              const data = JSON.parse(body);
-              if (data && Array.isArray(data.models)) {
-                let validModels = data.models
-                  .filter(m => {
-                    const id = (m.name || '').replace(/^models\//, '').toLowerCase();
-                    const hasGen = Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent');
-                    if (!hasGen) return false;
-
-                    // 過濾掉圖片生成 (image/banana)、語音 (tts/lyria)、機器人 (robotics)、電腦操作 (computer-use) 與專用模型
-                    const isSpecialized = 
-                      id.includes('image') || 
-                      id.includes('banana') || 
-                      id.includes('tts') || 
-                      id.includes('lyria') || 
-                      id.includes('robotics') || 
-                      id.includes('computer-use') || 
-                      id.includes('deep-research') || 
-                      id.includes('antigravity') || 
-                      id.includes('embedding') || 
-                      id.includes('imagen') || 
-                      id.includes('veo') || 
-                      id.includes('aqa') ||
-                      id.includes('customtools');
-
-                    return !isSpecialized && (id.startsWith('gemini-') || id.includes('flash') || id.includes('pro'));
-                  })
-                  .map(m => {
-                    const id = m.name.replace(/^models\//, '');
-                    return {
-                      id,
-                      label: `${m.displayName || id} (${id})`
-                    };
-                  });
-                
-                if (validModels.length > 0) {
-                  // 最新版本在最前排序
-                  validModels = sortModelsNewestFirst(validModels);
-                  
-                  // 持久化寫入 config.json 快取
-                  const config = loadConfig();
-                  config.cachedModels = validModels;
-                  saveConfig(config);
-
-                  return resolve({ success: true, models: validModels });
-                }
-              }
-              return resolve({ success: false, message: '未找到可用的 Gemini 菜單模型' });
-            } catch (e) {
-              return resolve({ success: false, message: '解析回應 JSON 失敗: ' + e.message });
-            }
-          } else {
-            try {
-              const errObj = JSON.parse(body);
-              const errMsg = errObj.error?.message || `HTTP Error ${res.statusCode}`;
-              return resolve({ success: false, message: errMsg });
-            } catch (e) {
-              return resolve({ success: false, message: `HTTP Error ${res.statusCode}` });
-            }
-          }
-        });
-      });
-
-      req.on('error', (e) => {
-        resolve({ success: false, message: '網路連線失敗: ' + e.message });
-      });
-
-      req.end();
-    } catch (error) {
-      resolve({ success: false, message: error.message });
-    }
+    }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirectsLeft > 0) {
+        res.resume();
+        const nextUrl = new URL(res.headers.location, urlStr).toString();
+        return httpsGetText(nextUrl, headers, timeoutMs, redirectsLeft - 1).then(resolve, reject);
+      }
+      let body = '';
+      res.on('data', chunk => { body += chunk; });
+      res.on('end', () => resolve({ statusCode: res.statusCode, body }));
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error('連線逾時'));
+    });
+    req.on('error', reject);
+    req.end();
   });
+};
+
+// 取得帳號下所有分頁的 Gemini 模型清單
+const fetchAllGeminiModels = async (apiKey) => {
+  const allModels = [];
+  let pageToken = '';
+
+  do {
+    const query = `pageSize=1000&key=${encodeURIComponent(apiKey)}${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?${query}`;
+    const { statusCode, body } = await httpsGetText(url, { 'x-goog-api-key': apiKey });
+
+    if (statusCode < 200 || statusCode >= 300) {
+      let errMsg = `HTTP Error ${statusCode}`;
+      try {
+        const errObj = JSON.parse(body);
+        errMsg = errObj.error?.message || errMsg;
+      } catch (e) {}
+      throw new Error(errMsg);
+    }
+
+    const data = JSON.parse(body);
+    if (Array.isArray(data.models)) {
+      allModels.push(...data.models);
+    }
+    pageToken = data.nextPageToken || '';
+  } while (pageToken);
+
+  return allModels;
+};
+
+// 從 Google 官方定價文件抓取即時免費額度與棄用狀態對照表
+const fetchOfficialFreeTierMap = async () => {
+  const { statusCode, body } = await httpsGetText('https://ai.google.dev/gemini-api/docs/pricing.md.txt', {}, 8000);
+  if (statusCode < 200 || statusCode >= 300) {
+    throw new Error(`定價文件請求失敗 (${statusCode})`);
+  }
+
+  const modelStatus = new Map();
+  const sections = body.split(/^## /m).slice(1);
+  for (const section of sections) {
+    const headerPart = section.split(/\{% hr \/%\}|\{% tabs %\}/)[0];
+    const ids = [...headerPart.matchAll(/\[`([a-z0-9][a-z0-9.-]+)`\]\(\/docs\/models\//gi)].map(m => m[1].toLowerCase());
+    if (ids.length === 0) continue;
+
+    const standardTab = section.match(/\{% tab title="Standard" %\}([\s\S]*?)\{% \/tab %\}/)?.[1] || section;
+    const rows = standardTab.split('---').map(r => r.trim());
+    const inputRow = rows.find(r => /\*\s*Input price/i.test(r)) || '';
+    const outputRow = rows.find(r => /\*\s*Output price/i.test(r)) || '';
+    const isFree = /Free of charge/i.test(inputRow) && /Free of charge/i.test(outputRow);
+    const isDeprecated = /\*\*?Deprecated/i.test(section) || /is\s+\[deprecated\]/i.test(section);
+
+    for (const id of ids) {
+      modelStatus.set(id, { isFree, isDeprecated });
+    }
+  }
+  return modelStatus;
+};
+
+// 判斷是否為通用文字/多模態內容生成模型（排除生圖、語音、串流、機器人等專用模型）
+const isGeneralTextModel = (id, supportedGenerationMethods) => {
+  const hasGen = Array.isArray(supportedGenerationMethods) && supportedGenerationMethods.includes('generateContent');
+  if (!hasGen) return false;
+
+  const isSpecialized =
+    id.includes('image') ||
+    id.includes('banana') ||
+    id.includes('tts') ||
+    id.includes('lyria') ||
+    id.includes('transcribe') ||
+    id.includes('omni') ||
+    /(^|-)live(-|$)/.test(id) ||
+    id.includes('robotics') ||
+    id.includes('computer-use') ||
+    id.includes('deep-research') ||
+    id.includes('antigravity') ||
+    id.includes('embedding') ||
+    id.includes('imagen') ||
+    id.includes('veo') ||
+    id.includes('aqa') ||
+    id.includes('decision') ||
+    id.includes('customtools');
+
+  return !isSpecialized && (id.startsWith('gemini-') || id.includes('flash') || id.includes('pro'));
+};
+
+// 當官方定價文件無法連線時的備援免費模型規則過濾
+const isFreeModelFallback = (id) => {
+  const paidOrAmbiguous =
+    id.includes('argon') ||
+    id.includes('carbon') ||
+    id.includes('ultra') ||
+    id.includes('pro-preview') ||
+    id.endsWith('-latest');
+
+  if (paidOrAmbiguous) return false;
+  return id.includes('hydrogen') || id.includes('flash') || id === 'gemini-2.5-pro';
+};
+
+ipcMain.handle('fetch-available-models', async (event, apiKey) => {
+  try {
+    const keyToUse = (apiKey && apiKey.trim()) || loadConfig().geminiApiKey;
+    if (!keyToUse) {
+      return { success: false, message: '請先設定或輸入 API Key' };
+    }
+
+    // 同時向 Gemini API 取回全部模型，並向 Google 官方定價文件抓取最新免費額度列表
+    const [rawModels, pricingResult] = await Promise.all([
+      fetchAllGeminiModels(keyToUse),
+      fetchOfficialFreeTierMap().catch((err) => {
+        console.warn('無法抓取官方定價文件，改用規則備援過濾:', err.message);
+        return null;
+      })
+    ]);
+
+    const hasOfficialPricing = pricingResult && pricingResult.size >= 3;
+
+    let validModels = rawModels
+      .filter((m) => {
+        const id = (m.name || '').replace(/^models\//, '').toLowerCase();
+        if (!isGeneralTextModel(id, m.supportedGenerationMethods)) return false;
+
+        if (hasOfficialPricing) {
+          return pricingResult.get(id)?.isFree === true;
+        }
+        return isFreeModelFallback(id);
+      })
+      .map((m) => {
+        const id = m.name.replace(/^models\//, '');
+        const deprecated = hasOfficialPricing ? Boolean(pricingResult.get(id.toLowerCase())?.isDeprecated) : false;
+        return {
+          id,
+          label: `${m.displayName || id} (${id})${deprecated ? ' [即將棄用]' : ''}`,
+          deprecated
+        };
+      });
+
+    if (validModels.length === 0) {
+      return { success: false, message: '未找到可用的免費額度 Gemini 模型' };
+    }
+
+    validModels = sortModelsNewestFirst(validModels);
+
+    // 覆蓋寫入公用目錄的 ai_models.json，讓所有共用人員同步取得最新清單
+    const saved = jsonService.saveAiModels(validModels);
+    return {
+      success: true,
+      models: saved.models,
+      updatedAt: saved.updatedAt,
+      pricingFallback: !hasOfficialPricing
+    };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
 });
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -719,7 +808,15 @@ const crypto = require('crypto');
 
 ipcMain.handle('scan-menu', async (event, { shopId, shopName, imageBase64, apiKey, model: requestedModel }) => {
   const config = loadConfig();
-  const selectedModel = requestedModel || config.selectedModel || 'gemini-3.6-flash';
+  const sharedModels = jsonService.getAiModels().models;
+  const candidateModel = requestedModel || config.selectedModel;
+  // 僅允許使用公用目錄已同步清單內的模型，防止舊設定或異常請求誤用付費模型
+  const selectedModel = sharedModels.some(m => m.id === candidateModel)
+    ? candidateModel
+    : sharedModels[0]?.id;
+  if (!selectedModel) {
+    return { success: false, message: '共用目錄尚未同步可用模型，請先點擊「同步最新模型」' };
+  }
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const promptTemplate = fs.readFileSync(path.join(__dirname, 'prompt/prompt.md'), 'utf-8');

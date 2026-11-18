@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSelectedModel: (modelName) => ipcRenderer.invoke('save-selected-model', modelName),
   getCachedModels: () => ipcRenderer.invoke('get-cached-models'),
   saveCachedModels: (models) => ipcRenderer.invoke('save-cached-models', models),
+  getModelUsage: () => ipcRenderer.invoke('get-model-usage'),
+  clearModelUsage: () => ipcRenderer.invoke('clear-model-usage'),
   fetchAvailableModels: (apiKey) => ipcRenderer.invoke('fetch-available-models', apiKey),
   scanMenu: (params) => ipcRenderer.invoke('scan-menu', params),
   getMenu: (shopId) => ipcRenderer.invoke('get-menu', shopId),

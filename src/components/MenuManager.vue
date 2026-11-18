@@ -10,12 +10,11 @@ const apiKey = ref('');
 const isKeySaved = ref(false);
 const showKey = ref(false);
 
-const selectedModel = ref('gemini-3.6-flash');
-const customModelName = ref('');
-const isCustomModel = ref(false);
+const selectedModel = ref('');
 const showUsageModal = ref(false);
 const usageData = ref({ models: {}, history: [] });
 const isFetchingModels = ref(false);
+const modelsUpdatedAt = ref(null);
 
 let usageModalId = null;
 
@@ -41,17 +40,30 @@ onUnmounted(() => {
   }
 });
 
-const defaultModelOptions = [
-  { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (最新推薦)' },
-  { id: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite (極速輕量)' },
-  { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
-  { id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro (高階推理)' },
-  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-  { id: 'custom', label: '自訂模型名稱...' }
-];
+const modelOptions = ref([]);
 
-const modelOptions = ref([...defaultModelOptions]);
+// 更新共用模型選單
+const applyModelList = (models, updatedAt = null) => {
+  modelOptions.value = Array.isArray(models) ? [...models] : [];
+  modelsUpdatedAt.value = updatedAt;
+};
+
+// 依共用清單還原選取項；若無對應項目則自動切換至最新可用模型
+const syncSelectionWithOptions = async (preferredId) => {
+  if (modelOptions.value.length === 0) {
+    selectedModel.value = '';
+    return;
+  }
+
+  const nextId = preferredId && modelOptions.value.some(m => m.id === preferredId)
+    ? preferredId
+    : modelOptions.value[0].id;
+
+  selectedModel.value = nextId;
+  if (nextId !== preferredId && window.electronAPI.saveSelectedModel) {
+    await window.electronAPI.saveSelectedModel(nextId);
+  }
+};
 
 const fetchModelsFromApi = async () => {
   isFetchingModels.value = true;
@@ -59,11 +71,11 @@ const fetchModelsFromApi = async () => {
     const keyToPass = apiKey.value ? apiKey.value.trim() : '';
     const res = await window.electronAPI.fetchAvailableModels(keyToPass);
     if (res.success && res.models && res.models.length > 0) {
-      modelOptions.value = [
-        ...res.models,
-        { id: 'custom', label: '自訂模型名稱...' }
-      ];
-      triggerToast(`已成功獲取 ${res.models.length} 個可用 Gemini 模型！`);
+      const currentId = selectedModel.value;
+      applyModelList(res.models, res.updatedAt || new Date().toISOString());
+      await syncSelectionWithOptions(currentId);
+      const suffix = res.pricingFallback ? '（無法讀取官方定價頁，採規則過濾）' : '';
+      triggerToast(`已同步 ${res.models.length} 個免費額度 Gemini 模型並更新共用清單${suffix}`);
     } else {
       triggerToast('獲取模型失敗：' + (res.message || '請檢查 API Key 設定'));
     }
@@ -74,12 +86,7 @@ const fetchModelsFromApi = async () => {
   }
 };
 
-const activeModelName = computed(() => {
-  if (selectedModel.value === 'custom') {
-    return customModelName.value.trim() || 'gemini-3.6-flash';
-  }
-  return selectedModel.value;
-});
+const activeModelName = computed(() => selectedModel.value || '');
 
 const shops = ref([]);
 const selectedShopId = ref('');
@@ -104,46 +111,26 @@ const loadApiKey = async () => {
 const loadSelectedModel = async () => {
   if (window.electronAPI.getCachedModels) {
     const cached = await window.electronAPI.getCachedModels();
-    if (cached && Array.isArray(cached) && cached.length > 0) {
-      modelOptions.value = [
-        ...cached,
-        { id: 'custom', label: '自訂模型名稱...' }
-      ];
+    if (Array.isArray(cached)) {
+      applyModelList(cached, null);
+    } else if (cached && Array.isArray(cached.models)) {
+      applyModelList(cached.models, cached.updatedAt || null);
     }
   }
 
+  let saved = '';
   if (window.electronAPI.getSelectedModel) {
-    const saved = await window.electronAPI.getSelectedModel();
-    if (saved) {
-      const match = modelOptions.value.find(m => m.id === saved);
-      if (match && match.id !== 'custom') {
-        selectedModel.value = saved;
-        isCustomModel.value = false;
-      } else {
-        selectedModel.value = 'custom';
-        customModelName.value = saved;
-        isCustomModel.value = true;
-      }
-    }
+    saved = (await window.electronAPI.getSelectedModel()) || '';
   }
+  await syncSelectionWithOptions(saved);
 };
 
 const handleModelChange = async (val) => {
-  if (val === 'custom') {
-    isCustomModel.value = true;
-    if (customModelName.value.trim()) {
-      await window.electronAPI.saveSelectedModel(customModelName.value.trim());
-    }
-  } else {
-    isCustomModel.value = false;
-    await window.electronAPI.saveSelectedModel(val);
+  if (!val) {
+    selectedModel.value = '';
+    return;
   }
-};
-
-const handleCustomModelBlur = async () => {
-  if (isCustomModel.value && customModelName.value.trim()) {
-    await window.electronAPI.saveSelectedModel(customModelName.value.trim());
-  }
+  await window.electronAPI.saveSelectedModel(val);
 };
 
 const saveApiKey = async () => {
@@ -371,17 +358,16 @@ onMounted(() => {
               :options="modelOptions"
               option-label="label"
               option-value="id"
-              placeholder="-- 選擇 Gemini 模型 --"
+              :disabled="modelOptions.length === 0"
+              :placeholder="modelOptions.length === 0 ? '-- 請先同步最新模型 --' : '-- 選擇 Gemini 模型 --'"
               @change="handleModelChange"
             />
-            <input 
-              v-if="isCustomModel"
-              v-model="customModelName"
-              @blur="handleCustomModelBlur"
-              type="text"
-              class="w-full bg-slate-900/50 border border-slate-700/60 rounded-xl px-3.5 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-all font-mono text-sm shadow-sm"
-              placeholder="例如：gemini-3.6-pro"
-            >
+            <p v-if="modelOptions.length === 0" class="text-xs text-amber-400/90">
+              共用目錄尚未有模型清單，請先點擊右上角「同步最新模型」。
+            </p>
+            <p v-else-if="modelsUpdatedAt" class="text-xs text-slate-500">
+              共用清單同步時間：{{ new Date(modelsUpdatedAt).toLocaleString() }}
+            </p>
           </div>
         </div>
       </div>
@@ -425,13 +411,14 @@ onMounted(() => {
 
         <button 
           @click="scanMenu"
-          :disabled="!currentImage || !isKeySaved || isScanning"
+          :disabled="!currentImage || !isKeySaved || !activeModelName || isScanning"
           class="mt-4 w-full py-3.5 rounded-xl font-normal text-base flex justify-center items-center gap-2 transition-all border border-transparent shadow-lg"
-          :class="(!currentImage || !isKeySaved || isScanning) ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border-slate-600/30' : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-555 hover:to-blue-555 text-white shadow-purple-500/10'"
+          :class="(!currentImage || !isKeySaved || !activeModelName || isScanning) ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border-slate-600/30' : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-555 hover:to-blue-555 text-white shadow-purple-500/10'"
         >
           <Loader2 v-if="isScanning" class="w-5 h-5 animate-spin" />
           <Scan v-else class="w-5 h-5" />
-          <span>{{ isScanning ? `正在使用 ${activeModelName} 辨識中...` : `開始辨識菜單 (${activeModelName})` }}</span>
+          <span v-if="!activeModelName">請先選擇或同步 AI 模型</span>
+          <span v-else>{{ isScanning ? `正在使用 ${activeModelName} 辨識中...` : `開始辨識菜單 (${activeModelName})` }}</span>
         </button>
       </div>
 
